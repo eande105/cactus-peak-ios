@@ -433,16 +433,16 @@ struct HoursSheet: View {
             List {
                 Section("Hours") { HoursTable(club: club, now: model.now) }
                 Section {
-                    Text("6:00 a.m.–8:00 p.m.").monospacedDigit()
+                    Text("6:00 am–8:00 pm").monospacedDigit()
                 } header: { Text("Desk staffed") } footer: { Text("Door readers work whenever the club is open.") }
                 if club.hasKids {
                     Section("Kids club") {
-                        Text("Mon–Sat 8:00–10:00 a.m., 10:00 a.m.–12:00 p.m., 4:00–6:00 p.m., 6:00–8:00 p.m.")
+                        Text("Mon–Sat 8:00–10:00 am, 10:00 am–12:00 pm, 4:00–6:00 pm, 6:00–8:00 pm")
                         Text("Ages 6 months to 12 years.").foregroundStyle(Color.textMuted)
                     }
                 }
                 if club.hasPool { Section("Pool") { Text("Closes 30 minutes before the club.") } }
-                Section("Holiday hours") { Text("Thanksgiving, Nov 26: 6:00 a.m.–2:00 p.m.") }
+                Section("Holiday hours") { Text("Thanksgiving, Nov 26: 6:00 am–2:00 pm") }
                 Section { Button { openURL(URL(string: "tel:\(club.phone.filter(\.isNumber))")!) } label: { Label("Call the club · \(club.phone)", systemImage: "phone") } }
             }
             .navigationTitle(club.fullName).navigationBarTitleDisplayMode(.inline)

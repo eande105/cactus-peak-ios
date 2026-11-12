@@ -76,7 +76,7 @@ struct PassView: View {
             }
         case .wrongClub(let home): Banner(tone: .warning, text: "Your Trailhead plan covers \(home). A day pass here is $20.", actionTitle: "See plans") { router.dismissSheet(); router.selection = .you; router.paths[.you] = [.membership, .plans] }
         case .closed(let opens): Banner(tone: .info, text: "\(model.club(model.passClubID).fullName) opens at \(opens)", actionTitle: nil, action: nil)
-        case .beforeDesk: Banner(tone: .info, text: "Desk opens at 6:00 a.m. Scan at the door reader.", actionTitle: nil, action: nil)
+        case .beforeDesk: Banner(tone: .info, text: "Desk opens at 6:00 am. Scan at the door reader.", actionTitle: nil, action: nil)
         default:
             if model.offline { StatusPill(text: "Offline code", symbol: "wifi.slash", tone: .neutral) }
         }

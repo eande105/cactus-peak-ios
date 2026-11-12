@@ -15,7 +15,7 @@ struct ClubDetailView: View {
         let reading = model.busyness(club)
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                ClubHero(club: club, height: dts.isAccessibilitySize ? 180 : 260)
+                ClubHero(club: club)
                 VStack(alignment: .leading, spacing: 24) {
                     facts(club, reading)
                     liveNow(club, reading)
@@ -71,7 +71,7 @@ struct ClubDetailView: View {
         FlowLayout(spacing: 14) {
             OpenStatus(club: c, now: model.now)
             Label(String(format: "%.1f mi", c.distanceMiles), systemImage: "location").font(.footnote.weight(.medium)).foregroundStyle(Color.textMuted)
-            Label("Desk staffed 6 a.m. to 8 p.m.", systemImage: "person.fill.checkmark").font(.footnote.weight(.medium)).foregroundStyle(Color.textMuted)
+            Label("Desk staffed 6 am to 8 pm", systemImage: "person.fill.checkmark").font(.footnote.weight(.medium)).foregroundStyle(Color.textMuted)
             BusynessMeter(reading: r, variant: .inline, now: model.now)
         }
     }
@@ -105,7 +105,7 @@ struct ClubDetailView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(c.isOpen(at: model.now) ? "Open until \(c.openUntilText(on: model.now))" : "Closed · opens \(c.opensText(model.now))").font(.headline)
-                        Text("Mon–Fri 4:30 a.m.–10 p.m. · Sat–Sun 6 a.m.–8 p.m.").font(.footnote).foregroundStyle(Color.textMuted)
+                        Text("Mon–Fri 4:30 am–10 pm · Sat–Sun 6 am–8 pm").font(.footnote).foregroundStyle(Color.textMuted)
                     }
                     Spacer(); Text("All hours").font(.subheadline.weight(.semibold)).foregroundStyle(Color.linkText); Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Color.textMuted)
                 }
@@ -120,9 +120,11 @@ struct ClubDetailView: View {
             let spaces = c.spaces
             ForEach(spaces.primary) { s in
                 HStack(alignment: .top, spacing: 12) {
+                    // The lead object on a muted tile, as the club page's space rows.
                     SpaceGraphic(id: s.graphic)
+                        .padding(16)
                         .frame(width: 72, height: 72)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(s.name).font(.headline)
                         Text(s.line).font(.subheadline).foregroundStyle(Color.textMuted).fixedSize(horizontal: false, vertical: true)
@@ -135,7 +137,7 @@ struct ClubDetailView: View {
                 FlowLayout(spacing: 12) {
                     ForEach(spaces.amenities) { a in
                         HStack(spacing: 8) {
-                            SpaceGraphic(id: a.graphic).frame(width: 32, height: 32).clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                            SpaceGraphic(id: a.graphic).frame(width: 32, height: 32)
                             Text(a.name).font(.subheadline)
                         }
                         .accessibilityElement(children: .combine)

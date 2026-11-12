@@ -7,7 +7,7 @@ Source: ../brand-graphics/svg/<set>/<id>-<variant>-<light|dark>.svg, written by
 `node scripts/export-graphics.mjs` in the marketing site (the source of truth).
 Each pair becomes one image set with an "Any" (light) and a "Dark" appearance and
 "Preserve Vector Data" on. Image set names are "<set>-<id>[-<variant>]", for example
-"class-cycle-16x9" or "coach-marisol-vega". The script deletes and rewrites the catalog,
+"objects-kettlebell", "category-cycle-cut" or "rack-class-cycle-16x9". The script deletes and rewrites the catalog,
 so do not edit it by hand. Run `xcodegen generate` only if the catalog is new.
 """
 import json
@@ -19,16 +19,12 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT.parent / "brand-graphics" / "svg"
 DST = ROOT / "Shared" / "BrandGraphics.xcassets"
 
-# Only the variants the app shows. Use tile and thumb below 120 pt (brand-graphics/README.md).
+# The sets the app shows. None means every file in the set.
 SETS = {
-    # Gym objects (Nucleo core glyphs, brand colours) and class category tiles: the brand language.
+    # Gym objects (Nucleo core glyphs, brand colours), class category tiles and the Night Racks.
     "objects": [None],
     "category": [None],
-    # Retiring sets (VISUAL-IDENTITY.md, section 2), kept until the screens stop using them.
-    "space": ["1x1", "tile"],
-    "class": ["16x9", "1x1"],
-    "coach": [None],
-    "art": ["16x9", "4x5", "thumb"],
+    "rack": [None],
 }
 INFO = {"author": "xcode", "version": 1}
 

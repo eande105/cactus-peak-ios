@@ -39,7 +39,7 @@ enum CatalogMapper {
         func courts(_ sport: String) -> Int { r.courts.first { $0.sport == sport }?.count ?? 0 }
         let caption = r.photoCaption.flatMap { $0.isEmpty ? nil : $0 } ?? "\(r.shortName) — the main floor"
         return Club(
-            id: r.slug, slug: r.slug, city: r.city, area: r.neighborhood, address: r.address, phone: r.phone, zip: r.zip,
+            id: r.slug, slug: r.slug, city: r.city, area: r.shortName, address: r.address, phone: r.phone, zip: r.zip,
             latitude: r.lat, longitude: r.lng, kind: r.typeLabel, personality: r.personality,
             amenities: r.amenities.map { Club.Amenity(label: $0, symbol: symbol(forAmenity: $0)) },
             lanes: r.pool?.lanes ?? 0, hasKids: r.kidsClub,

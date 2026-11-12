@@ -44,7 +44,7 @@ Status is the builder's claim in BUILD-NOTES "Review 1, response". "Verified" me
 | Late cancel dialog | Fixed | Yes | `flow-late-cancel-dialog.png`. Works. Free cancel still opens a sheet (N7). |
 | Widget timeline | Fixed in code | Code only | Per-boundary entries exist in `CactusPeakWidgets.swift:36-56`. Not rendered. |
 | Book toolbar spacers | Fixed | Yes | Filter and tickets are separate glass items. Today bell and QR are still one merged pill (`light/today.png`). |
-| Count and filter row only when filters active | Fixed | Partly | "19 classes · Gilbert – Val Vista" still shows with no filter. |
+| Count and filter row only when filters active | Fixed | Partly | "19 classes · Val Vista & Warner" still shows with no filter. |
 | Sport, duration segmented | Fixed | Yes | `light/courts.png`. |
 | Bookings strike copy and link | Fixed | Yes | Still an amber card. |
 | Family strip removed | Fixed | Yes | `light/family.png`. |
@@ -64,7 +64,7 @@ Status is the builder's claim in BUILD-NOTES "Review 1, response". "Verified" me
 | Flow | Result | Screenshot |
 |---|---|---|
 | Book a class | Works. Tap Book, the row flips to "Booked" in place with `.success` haptic. Toast "Booked · Thu 5:30 a.m." and "Add to calendar". The toast sits over the Show pass accessory and the last row (hard-coded `padding(.bottom, 96)`). A booked row still shows a warning triangle with "5 spots left", which makes a successful state look like an alert. | `flow-book-toast.png` |
-| Add to calendar | Works. System `EKEventEditViewController` opens, title "Rib Rack Strength · Gilbert – Val Vista", location, 30 min alert. First 1 to 2 seconds show a blank grey sheet before the editor draws (the `EKEventStore` is created in `makeUIViewController`, `Support/PlatformViews.swift:37`). | `flow-calendar.png` |
+| Add to calendar | Works. System `EKEventEditViewController` opens, title "Rib Rack Strength · Val Vista & Warner", location, 30 min alert. First 1 to 2 seconds show a blank grey sheet before the editor draws (the `EKEventStore` is created in `makeUIViewController`, `Support/PlatformViews.swift:37`). | `flow-calendar.png` |
 | Time clash | Alert works (Cancel, Keep both). **Bug: "5:30 a.m.. Book both?"** | `flow-clash-alert.png` |
 | Waitlist, hold, Confirm spot | Hold card, countdown "Confirm spot · 29:57", Confirm flips the Coming up row to Booked with a toast. Works. Toast "Booked · Wed 5:30 p.m." again stacks over the accessory. | `light/state-hold.png`, `flow-waitlist-confirmed.png` |
 | Late cancel | `confirmationDialog` shows "This is a late cancel. It counts as strike 2 of 3 in 30 days." with a red "Cancel booking". Strike banner updates to "2 late cancels". Toast "Cancelled. That counts as a late cancel." has no Undo (correct by spec, but there is no `.warning` haptic). The dialog is a floating popover with no visible "Keep my spot"; users must tap outside. | `flow-late-cancel-dialog.png`, `flow-late-cancel-toast.png` |
@@ -147,7 +147,7 @@ Files: `Views/FamilyViews.swift`, `Views/YouViews.swift` (guest), `Views/Sheets2
 
 ### P2 (polish)
 
-- N20. Club picker on Book (`Mesa – Red Mountain` capsule) is a hand-drawn outline capsule. Use `Menu { Picker("Club", selection:) {...} } label: { Label(club.shortName, systemImage: "mappin") }.menuStyle(.button).buttonStyle(.bordered)` or the toolbar `.principal` slot.
+- N20. Club picker on Book (`Power & McKellips` capsule) is a hand-drawn outline capsule. Use `Menu { Picker("Club", selection:) {...} } label: { Label(club.shortName, systemImage: "mappin") }.menuStyle(.button).buttonStyle(.bordered)` or the toolbar `.principal` slot.
 - N21. Add-to-calendar flash: create the `EKEventStore` earlier and call `requestWriteOnlyAccessToEvents` before presenting (`Support/PlatformViews.swift:37`).
 - N22. Lanes row text "1 of 8 lanes open · 1 lane with 1 of 2 swimmers" is unchanged. Show `1 lane open` and `+1 lane to share`; 8 small rib cells per slot.
 - N23. Onboarding step 3 Alerts screen and the Continue button: the progress ribs are right; "Turn on alerts" is a centred pill with "Not now" below; OK, but use `.glassProminent`.

@@ -102,7 +102,7 @@ enum TimeOfDay: String, CaseIterable, Identifiable, Hashable {
     case early = "Early morning", morning = "Morning", midday = "Midday", evening = "Evening"
     var id: String { rawValue }
     var detail: String {
-        switch self { case .early: "Before 8 a.m."; case .morning: "8 a.m. to noon"; case .midday: "Noon to 4 p.m."; case .evening: "4 p.m. on" }
+        switch self { case .early: "Before 8 am"; case .morning: "8 am to noon"; case .midday: "Noon to 4 pm"; case .evening: "4 pm on" }
     }
     static func of(_ d: Date) -> TimeOfDay {
         let h = AZ.cal.component(.hour, from: d)
@@ -112,7 +112,7 @@ enum TimeOfDay: String, CaseIterable, Identifiable, Hashable {
 
 struct ClashPrompt: Identifiable, Hashable {
     var id: SessionID; var existing: String; var existingTime: String
-    /// `existingTime` already ends with a period ("5:30 a.m."), so the next sentence starts after it.
+    /// `existingTime` already ends with a period ("5:30 am"), so the next sentence starts after it.
     var message: String { "You are already booked in \(existing) at \(existingTime) Book both?" }
 }
 
@@ -131,8 +131,8 @@ final class AppRouter {
     var segment: BookSegment = .classes
     var day: Date = AZ.date(2026, 10, 27)
     var filters = ScheduleFilters()
-    var viewingClubID: ClubID = "gilbert-val-vista"
-    var reserveClub: [ReserveKind: ClubID] = [.court: "mesa-red-mountain", .lane: "mesa-dobson", .kidsClub: "gilbert-val-vista"]
+    var viewingClubID: ClubID = "val-vista-warner"
+    var reserveClub: [ReserveKind: ClubID] = [.court: "power-mckellips", .lane: "dobson-southern", .kidsClub: "val-vista-warner"]
     var sport: CourtSport = .pickleball
     var duration = 90
     var confirmHoldFor: SessionID?     // deep link ?action=confirm

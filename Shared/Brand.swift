@@ -220,29 +220,29 @@ enum AZ {
 }
 
 extension Date {
-    /// "6:00 a.m."
+    /// "6:00 am"
     var cpTime: String {
         let c = AZ.cal.dateComponents([.hour, .minute], from: self)
         let h = c.hour ?? 0, m = c.minute ?? 0
         let h12 = h % 12 == 0 ? 12 : h % 12
-        return String(format: "%d:%02d %@", h12, m, h < 12 ? "a.m." : "p.m.")
+        return String(format: "%d:%02d %@", h12, m, h < 12 ? "am" : "pm")
     }
-    /// "6 a.m." when on the hour, otherwise "6:15 a.m."
+    /// "6 am" when on the hour, otherwise "6:15 am"
     var cpTimeShort: String {
         let c = AZ.cal.dateComponents([.hour, .minute], from: self)
         if (c.minute ?? 0) == 0 {
             let h = c.hour ?? 0
             let h12 = h % 12 == 0 ? 12 : h % 12
-            return "\(h12) \(h < 12 ? "a.m." : "p.m.")"
+            return "\(h12) \(h < 12 ? "am" : "pm")"
         }
         return cpTime
     }
-    /// "6:00" and "a.m." split, for big-numeral layouts
+    /// "6:00" and "am" split, for big-numeral layouts
     var cpClock: (String, String) {
         let c = AZ.cal.dateComponents([.hour, .minute], from: self)
         let h = c.hour ?? 0
         let h12 = h % 12 == 0 ? 12 : h % 12
-        return (String(format: "%d:%02d", h12, c.minute ?? 0), h < 12 ? "a.m." : "p.m.")
+        return (String(format: "%d:%02d", h12, c.minute ?? 0), h < 12 ? "am" : "pm")
     }
     func cpFormat(_ f: String) -> String { CPFormatters.string(self, f) }
     var cpWeekdayShort: String { cpFormat("EEE") }
@@ -274,6 +274,6 @@ enum CPFormatters {
 }
 
 extension String {
-    /// Times such as "6:00 a.m." already end with a period. Use this when a sentence ends with one.
+    /// Ends a sentence with one period. Times such as "6:00 am" carry none, so use this when a sentence ends with one.
     var endingSentence: String { hasSuffix(".") || hasSuffix("?") || hasSuffix("!") ? self : self + "." }
 }

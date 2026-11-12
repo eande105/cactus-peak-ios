@@ -122,10 +122,10 @@ extension AppModel {
         writeBookingUpdate(b, ["status": "held", "hold_expires_at": .date(b.holdExpires), "waitlist_position": .null],
                            failure: "Couldn't open the spot.", rollback: undo)
         addInbox(.waitlist, "A spot opened in \(b.title)",
-                 "\(b.start.cpWeekdayShort) \(b.start.cpTime) · \(club(b.clubID).fullName). Confirm by \(b.holdExpires!.cpTime)",
+                 "\(b.start.cpWeekdayShort) \(b.start.cpTime) · \(club(b.clubID).fullName). Confirm by \(b.holdExpires!.cpTime)".endingSentence,
                  route: "/book/class/\(b.sessionID ?? "")?action=confirm")
         NotificationSupport.shared.post(title: "A spot opened in \(b.title)",
-                                         body: "\(b.start.cpWeekdayShort) \(b.start.cpTime) · \(club(b.clubID).fullName). Confirm by \(b.holdExpires!.cpTime)",
+                                         body: "\(b.start.cpWeekdayShort) \(b.start.cpTime) · \(club(b.clubID).fullName). Confirm by \(b.holdExpires!.cpTime)".endingSentence,
                                          category: "WAITLIST_PROMOTED", route: "/book/class/\(b.sessionID ?? "")?action=confirm")
     }
 

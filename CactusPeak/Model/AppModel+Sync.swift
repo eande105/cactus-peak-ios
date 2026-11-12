@@ -97,7 +97,7 @@ extension AppModel {
 
     /// Forgets every household value, so the next member never sees the last one's data.
     func clearHousehold() {
-        member = MemberProfile(first: "", last: "", plan: .ridge, homeClubID: clubs.first?.id ?? "gilbert-val-vista",
+        member = MemberProfile(first: "", last: "", plan: .ridge, homeClubID: clubs.first?.id ?? "val-vista-warner",
                                memberNumber: "", billingDay: 1, sinceText: "", email: "")
         memberRowID = ""; householdID = ""
         people = []; bookings = []; familyClassRows = []; visits = []; strikes = []; inbox = []; guestPasses = []; invoices = []
@@ -203,7 +203,7 @@ extension AppModel {
         if case .offline = BackendError(error).kind { networkOffline = true }
     }
 
-    /// "5:12 a.m." for the offline banners: when the data on screen was saved.
+    /// "5:12 am" for the offline banners: when the data on screen was saved.
     var savedDataText: String {
         guard let d = [catalogSavedAt, householdSavedAt].compactMap({ $0 }).min() else { return "No saved data yet." }
         let day = AZ.cal.isDateInToday(d) ? "" : "\(d.cpFormat("MMM d")), "
@@ -365,7 +365,7 @@ extension AppModel {
         }
     }
 
-    /// Demo controls: starts the demo day again at Tue 5:40 a.m. on every device of the household.
+    /// Demo controls: starts the demo day again at Tue 5:40 am on every device of the household.
     func restartClock() {
         let started = Date()
         realOrigin = started

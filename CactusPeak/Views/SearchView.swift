@@ -14,7 +14,7 @@ struct SearchView: View {
     @State private var scope: SearchScope = .all
     @State private var debounced = ""
 
-    private let tries = ["Climb Cycle 6 a.m.", "Pickleball Open Play", "Kids club", "Sauna"]
+    private let tries = ["Climb Cycle 6 am", "Pickleball Open Play", "Kids club", "Sauna"]
     private let help = [("How do I freeze my membership?", "freeze"), ("What is a late cancel?", "late cancel strike"), ("How do guest passes work?", "guest pass"), ("Where is the kids club?", "kids club"), ("How do waitlists work?", "waitlist")]
 
     var body: some View {
@@ -33,7 +33,7 @@ struct SearchView: View {
             if text.isEmpty {
                 ForEach(model.recentSearches.prefix(8), id: \.self) { Label($0, systemImage: "clock.arrow.circlepath").searchCompletion($0) }
             } else {
-                ForEach(model.clubs.filter { $0.fullName.localizedCaseInsensitiveContains(text) }) { c in Label(c.fullName, systemImage: "mappin.and.ellipse").searchCompletion(c.fullName) }
+                ForEach(model.clubs.filter { $0.fullName.localizedCaseInsensitiveContains(text) || $0.city.localizedCaseInsensitiveContains(text) }) { c in Label(c.fullName, systemImage: "mappin.and.ellipse").searchCompletion(c.fullName) }
                 ForEach(ClassCategory.allCases.filter { $0.title.localizedCaseInsensitiveContains(text) }) { c in Label(c.title, systemImage: c.symbol).searchCompletion(c.title) }
             }
         }
@@ -78,11 +78,11 @@ struct SearchView: View {
             s.start > model.now && s.start < model.now.addingDays(8) && model.visible(s)
             && (cats.isEmpty || cats.contains(s.category)) && (clubs.isEmpty || clubs.contains(s.clubID))
             && (q.isEmpty || s.name.lowercased().contains(q) || s.category.title.lowercased().contains(q) || model.coach(s.coachID).fullName.lowercased().contains(q)
-                || (q.contains("6 a.m.") && s.name.lowercased().contains(q.replacingOccurrences(of: " 6 a.m.", with: "")) && AZ.cal.component(.hour, from: s.start) == 6))
+                || (q.contains("6 am") && s.name.lowercased().contains(q.replacingOccurrences(of: " 6 am", with: "")) && AZ.cal.component(.hour, from: s.start) == 6))
             && (clubs.isEmpty ? (model.member.plan.allClubs ? true : s.clubID == model.member.homeClubID) : true)
         }.sorted { ($0.name.lowercased() == q ? 0 : 1, $0.start) < ($1.name.lowercased() == q ? 0 : 1, $1.start) }
     }
-    private var clubHits: [Club] { model.clubs.filter { debounced.isEmpty || $0.fullName.localizedCaseInsensitiveContains(debounced) || $0.zip.contains(debounced) || $0.slug.contains(debounced.lowercased()) } }
+    private var clubHits: [Club] { model.clubs.filter { debounced.isEmpty || $0.fullName.localizedCaseInsensitiveContains(debounced) || $0.city.localizedCaseInsensitiveContains(debounced) || $0.zip.contains(debounced) || $0.slug.contains(debounced.lowercased()) } }
     private var coachHits: [Coach] { model.coaches.filter { debounced.isEmpty || $0.fullName.localizedCaseInsensitiveContains(debounced) || $0.category.title.localizedCaseInsensitiveContains(debounced) || $0.specialties.contains { $0.localizedCaseInsensitiveContains(debounced) } } }
     private var helpHits: [(String, String)] { help.filter { h in debounced.isEmpty || h.0.localizedCaseInsensitiveContains(debounced) || h.1.contains(debounced.lowercased()) } }
 

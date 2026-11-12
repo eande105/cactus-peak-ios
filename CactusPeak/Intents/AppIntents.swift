@@ -7,7 +7,7 @@ enum UsualSlot: String, AppEnum {
     case fiveAM, sixAM, sevenAM, noon, fivePM, sixPM
     static let typeDisplayRepresentation: TypeDisplayRepresentation = "Time"
     static let caseDisplayRepresentations: [UsualSlot: DisplayRepresentation] = [
-        .fiveAM: "5 a.m.", .sixAM: "6 a.m.", .sevenAM: "7 a.m.", .noon: "noon", .fivePM: "5 p.m.", .sixPM: "6 p.m.",
+        .fiveAM: "5 am", .sixAM: "6 am", .sevenAM: "7 am", .noon: "noon", .fivePM: "5 pm", .sixPM: "6 pm",
     ]
     var hour: Int { switch self { case .fiveAM: 5; case .sixAM: 6; case .sevenAM: 7; case .noon: 12; case .fivePM: 17; case .sixPM: 18 } }
 }
@@ -120,7 +120,7 @@ struct BookUsualClassIntent: AppIntent {
             switch m.state(for: s) {
             case .book, .dropIn:
                 if case .ok(let b) = m.book(s, force: true) {
-                    return .booked("Booked \(b.title), \(b.start.cpFormat("EEEE")) \(b.start.cpTimeShort) at \(m.club(b.clubID).fullName). Free cancel until \(b.cancelCutoff().cpTimeShort)")
+                    return .booked("Booked \(b.title), \(b.start.cpFormat("EEEE")) \(b.start.cpTimeShort) at \(m.club(b.clubID).fullName). Free cancel until \(b.cancelCutoff().cpTimeShort)".endingSentence)
                 }
                 return .none
             case .waitlist: return .full("\(s.name) is full.")

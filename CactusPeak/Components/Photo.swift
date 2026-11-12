@@ -1,7 +1,7 @@
 import SwiftUI
 
-// Club hero and member avatar. Placeholder photo slots are gone: clubs, spaces, classes and coaches use the
-// brand graphics in Shared/BrandGraphics.swift.
+// Club header and member avatar. Classes, spaces and coaches use the brand graphics in Shared/BrandGraphics.swift.
+// Clubs show their Set beside the name, never a picture.
 
 extension Color {
     /// Flat blend used for tonal fills (no gradient).
@@ -17,56 +17,26 @@ private extension Color.Resolved {
     }
 }
 
-/// Swipeable hero for a club: the club exterior, then its primary spaces, as brand space art.
+/// A club's header: its Set, the name, the city and the facts, on the page. The app shows no picture for a club.
 struct ClubHero: View {
     let club: Club
-    var height: CGFloat = 260
-    @State private var page = 0
-    @Environment(\.dynamicTypeSize) private var dts
-
-    private var textBlock: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(club.fullName).font(.archivoExtraBold(30, relativeTo: .largeTitle)).foregroundStyle(Color.nightOnSurface).fixedSize(horizontal: false, vertical: true)
-            Text(club.factLine).font(.subheadline).foregroundStyle(Color.nightOnSurface).fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 16).padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.nightSurface.opacity(0.8))
-    }
-
-    /// The exterior first, then up to three primary spaces that have space art (club-spaces mapping).
-    private var pages: [(name: String, image: String)] {
-        let spaces = club.spaces.primary.compactMap { s in s.graphic.artID.map { (name: s.name, image: BrandImage.art($0)) } }
-        return [(name: "Outside", image: BrandImage.clubExterior(slug: club.slug))] + spaces.prefix(3)
-    }
-
-    private var pager: some View {
-        TabView(selection: $page) {
-            ForEach(Array(pages.enumerated()), id: \.offset) { i, p in
-                BrandGraphicImage(name: p.image).tag(i)
-            }
-        }
-        .tabViewStyle(.page(indexDisplayMode: dts.isAccessibilitySize ? .never : .always))
-    }
 
     var body: some View {
-        Group {
-            if dts.isAccessibilitySize {
-                // The name block sits under the photo so large text is never clipped.
-                VStack(spacing: 0) { pager.frame(height: 180); textBlock }
-            } else {
-                ZStack(alignment: .bottomLeading) { pager.frame(height: height); textBlock.padding(.bottom, 30) }.frame(height: height)
-            }
+        VStack(alignment: .leading, spacing: 6) {
+            ClubSet(slug: club.slug, size: 32).padding(.bottom, 6)
+            Text(club.fullName).font(.archivoExtraBold(30, relativeTo: .largeTitle)).foregroundStyle(Color.textPrimary)
+                .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+            // The name is the cross streets, so the city has its own line.
+            Text("\(club.city), AZ").font(.subheadline.weight(.semibold)).foregroundStyle(Color.textMuted)
+            Text(club.factLine).font(.subheadline).foregroundStyle(Color.textMuted).fixedSize(horizontal: false, vertical: true)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(club.fullName). \(club.factLine). \(pages[min(page, pages.count - 1)].name), image \(page + 1) of \(pages.count). Swipe up or down to change.")
-        .accessibilityAdjustableAction { dir in
-            switch dir { case .increment: page = min(pages.count - 1, page + 1); case .decrement: page = max(0, page - 1); @unknown default: break }
-        }
+        .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 }
 
-/// Monogram avatar for members and family. Coaches use `CoachImage` (brand coach marks).
+/// Monogram avatar for members and family. Coaches use `CoachImage` (initials on Night with an object badge).
 struct Avatar: View {
     var initials: String
     var category: ClassCategory?

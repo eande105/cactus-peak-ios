@@ -223,3 +223,33 @@ The demo clock belongs to the household, not the device: `households.demo_clock_
 iOS and the web app show the same demo time. The server restarts a clock older than 3 hours, and `reset_demo_household()`
 restarts it too. Demo controls write a clock jump or restart to the household. `-clock HH:mm` and `-frozenClock` launches
 keep a local clock for screenshots.
+
+## Retired brand graphics removed (2026-11-04)
+
+The app no longer uses the retired space, class, coach and scene graphics. `Shared/BrandGraphics.swift` keeps its
+view names (`ClassGraphic`, `SpaceGraphic`, `ClubExteriorArt`, `CoachImage`), so the call sites did not change.
+The images behind them changed:
+
+| View | Before | Now |
+| --- | --- | --- |
+| `ClassGraphic` wide | Class line graphic | `rack-class-<category>-16x9`, the type's Night orbit |
+| `ClassGraphic` square | Class line graphic | `category-<category>-cut`, the cut category tile |
+| `SpaceGraphic` | Space line graphic | `objects-<lead>`, the space's lead object (on a muted tile in club detail) |
+| `CoachImage` | Coach mark or class graphic | Initials on Night with the coach's object as a badge from 40 pt |
+
+`tools/import-brand-graphics.py` imports `objects`, `category` and `rack` only.
+Checked: the app and the widget extension build. In the simulator I checked club detail, class detail and the
+club list. I did not check the widgets, the welcome flow or dark mode.
+
+### Clubs without a picture (2026-11-04)
+
+The app shows no Rack for a club. A club is its name, its facts and its Set (`ClubSet`: the club's three objects
+in a row, after the name).
+
+- `ClubExteriorArt` is deleted. The list row, the compact and feature cards and the map callout show text first,
+  with the Set after the name or above it.
+- `ClubHero` is a text header on the page: the Set, the name, the city and the facts. The swipeable pager is gone.
+- The welcome screen is a plain Night field behind the logo and the line.
+- The catalog has 57 image sets: 33 objects, 16 category tiles and 8 class Racks.
+
+Checked in the simulator: the club list, club detail and the welcome screen. Not checked: the widgets, dark mode.
