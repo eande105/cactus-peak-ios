@@ -56,7 +56,7 @@ struct SuccessView: View {
                     LabeledContent("Where", value: "\(b.detail.isEmpty ? "" : "\(b.detail) · ")\(club.fullName)")
                     if let s = session { LabeledContent("Intensity") { HStack { RibMeter(value: s.intensity, tone: .category(s.category), size: .sm, peak: false); Text(Intensity.word(s.intensity)) } } }
                     if b.status == .waitlisted {
-                        Text("We'll tell you if a spot opens. We can offer you one until \(b.start.addingTimeInterval(-3600).cpTime)").font(.subheadline)
+                        Text("We'll tell you if a spot opens. We can offer you one until \(b.start.addingTimeInterval(-3600).cpTime)".endingSentence).font(.subheadline)
                     } else if b.status == .booked {
                         Text(b.kind == .kids ? "Check in at \(club.shortName) by \(b.start.addingTimeInterval(15 * 60).cpTime) or we release the block." : "Free cancel until \(b.cancelCutoff().cpTime)").font(.subheadline)
                     }

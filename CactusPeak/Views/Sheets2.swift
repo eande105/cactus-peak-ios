@@ -209,9 +209,10 @@ struct ComparePlansSheet: View {
     @Environment(\.dynamicTypeSize) private var dts
     private let rows: [(String, [String])] = [
         ("Clubs", ["Home club", "All 5", "All 5"]),
-        ("Classes and pools", ["Home club", "Yes", "Yes"]),
-        ("Courts", ["Not included", "3 days ahead", "3 days ahead"]),
-        ("Recovery suite", ["Stretch & Release classes", "Stretch & Release classes", "Included"]),
+        ("Group classes", ["Every class at your club", "Every class at all 5", "Every class at all 5"]),
+        ("Pools", ["At your club, if it has one", "All 3 pools", "All 3 pools"]),
+        ("Courts", ["Not included", "At 3 clubs, 3 days ahead", "At 3 clubs, 3 days ahead"]),
+        ("Recovery suite or lounge", ["Not included", "Not included", "At 4 clubs"]),
         ("Class booking window", ["7 days", "7 days", "9 days"]),
         ("Guest passes", ["Not included", "1 a month", "4 a month"]),
         ("Towel service", ["Not included", "Not included", "Included"]),
@@ -331,7 +332,7 @@ struct PTPickerSheet: View {
             List {
                 Section {
                     HStack(spacing: 12) { InstructorChip(coach: coach, large: true); Spacer(); Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.brandAccent) }
-                    Text("Available 8 a.m.–8 p.m.").font(.footnote).foregroundStyle(Color.textMuted)
+                    Text("Available 8 am–8 pm").font(.footnote).foregroundStyle(Color.textMuted)
                 }
                 Section {
                     ScrollView(.horizontal) {

@@ -3,33 +3,33 @@ import XCTest
 
 final class SessionKeyTests: XCTestCase {
     func testMatchesWebFormat() {
-        // 6:00 a.m. Arizona time is 13:00 UTC. The id uses the Arizona day and time.
+        // 6:00 am Arizona time is 13:00 UTC. The id uses the Arizona day and time.
         let start = AZ.date(2026, 10, 27, 6, 0)
-        XCTAssertEqual(SessionKey.make(club: "gilbert-val-vista", start: start, classKey: "cc"), "gilbert-val-vista~2026-10-27~0600~cc")
-        XCTAssertEqual(SessionKey.make(club: "mesa-dobson", start: AZ.date(2026, 11, 1, 17, 30), classKey: "ride"), "mesa-dobson~2026-11-01~1730~ride")
+        XCTAssertEqual(SessionKey.make(club: "val-vista-warner", start: start, classKey: "cc"), "val-vista-warner~2026-10-27~0600~cc")
+        XCTAssertEqual(SessionKey.make(club: "dobson-southern", start: AZ.date(2026, 11, 1, 17, 30), classKey: "ride"), "dobson-southern~2026-11-01~1730~ride")
     }
 
     func testLateEveningStaysOnArizonaDay() {
-        // 6:30 p.m. Arizona is 01:30 UTC the next day. The id must not move to the UTC day.
+        // 6:30 pm Arizona is 01:30 UTC the next day. The id must not move to the UTC day.
         XCTAssertEqual(SessionKey.make(club: "x", start: AZ.date(2026, 10, 28, 18, 30), classKey: "kf"), "x~2026-10-28~1830~kf")
     }
 
     func testParseRoundTrip() {
-        let id = "mesa-red-mountain~2026-10-28~0900~af"
+        let id = "power-mckellips~2026-10-28~0900~af"
         let p = SessionKey.parse(id)
-        XCTAssertEqual(p?.club, "mesa-red-mountain")
+        XCTAssertEqual(p?.club, "power-mckellips")
         XCTAssertEqual(p?.classKey, "af")
         XCTAssertEqual(p?.start, AZ.date(2026, 10, 28, 9, 0))
         XCTAssertEqual(p.map { SessionKey.make(club: $0.club, start: $0.start, classKey: $0.classKey) }, id)
-        XCTAssertNil(SessionKey.parse("gilbert-val-vista_20261029_0600_cycle6"))
+        XCTAssertNil(SessionKey.parse("val-vista-warner_20261029_0600_cycle6"))
     }
 }
 
 final class CatalogMappingTests: XCTestCase {
     func testClubRow() {
         let c = CatalogMapper.clubs(Fixtures.catalog.clubs)[0]
-        XCTAssertEqual(c.id, "mesa-dobson")
-        XCTAssertEqual(c.fullName, "Mesa – Dobson")
+        XCTAssertEqual(c.id, "dobson-southern")
+        XCTAssertEqual(c.fullName, "Dobson & Southern")
         XCTAssertEqual(c.lanes, 8)
         XCTAssertEqual(c.pickleball, 4)
         XCTAssertEqual(c.tennis, 2)
@@ -56,9 +56,9 @@ final class CatalogMappingTests: XCTestCase {
         // Tue Oct 27 to Mon Nov 2. Climb Cycle runs Mon to Fri, yoga on Sunday, lap swim is not bookable.
         let s = CatalogMapper.sessions(catalog: Fixtures.catalog, from: AZ.date(2026, 10, 27), days: 7)
         XCTAssertEqual(s.filter { $0.classKey == "cc" }.count, 5)
-        XCTAssertEqual(s.filter { $0.classKey == "dfy" }.map(\.id), ["mesa-dobson~2026-11-01~0900~dfy"])
+        XCTAssertEqual(s.filter { $0.classKey == "dfy" }.map(\.id), ["dobson-southern~2026-11-01~0900~dfy"])
         XCTAssertFalse(s.contains { $0.classKey == "lap-swim" })
-        let cycle = s.first { $0.id == "mesa-dobson~2026-10-27~0600~cc" }
+        let cycle = s.first { $0.id == "dobson-southern~2026-10-27~0600~cc" }
         XCTAssertEqual(cycle?.start, AZ.date(2026, 10, 27, 6, 0))
         XCTAssertEqual(cycle?.durationMin, 45)
         XCTAssertEqual(cycle?.capacity, 20)
@@ -76,7 +76,7 @@ final class HouseholdMappingTests: XCTestCase {
         let s = HouseholdMapper.map(Fixtures.household(bookings: []), coaches: [], now: now)
         XCTAssertEqual(s.member.name, "Daniel Whitaker")
         XCTAssertEqual(s.member.plan, .trailhead)
-        XCTAssertEqual(s.member.homeClubID, "mesa-dobson")
+        XCTAssertEqual(s.member.homeClubID, "dobson-southern")
         XCTAssertEqual(s.member.age, 52)
         XCTAssertEqual(s.member.billingDay, 14)
         XCTAssertEqual(s.member.sinceText, "September 2026")
@@ -103,7 +103,7 @@ final class HouseholdMappingTests: XCTestCase {
         let s = HouseholdMapper.map(rows, coaches: [], now: now) { _ in "dana" }
         let byID = Dictionary(uniqueKeysWithValues: s.bookings.map { ($0.id, $0) })
         XCTAssertEqual(byID["b1"]?.status, .booked)
-        XCTAssertEqual(byID["b1"]?.sessionID, "mesa-dobson~2026-10-28~0900~af")
+        XCTAssertEqual(byID["b1"]?.sessionID, "dobson-southern~2026-10-28~0900~af")
         XCTAssertEqual(byID["b1"]?.coachID, "dana")
         XCTAssertEqual(byID["b1"]?.start, AZ.date(2026, 10, 28, 9, 0))
         XCTAssertEqual(byID["b2"]?.status, .lateCancelled)
@@ -128,16 +128,16 @@ final class HouseholdMappingTests: XCTestCase {
     }
 
     func testInsertRowForClass() {
-        var b = Booking(id: "b_x", kind: .classSession, status: .booked, sessionID: "mesa-dobson~2026-10-27~0600~cc", title: "Climb Cycle",
-                        clubID: "mesa-dobson", category: .mindBody, start: AZ.date(2026, 10, 27, 6, 0), end: AZ.date(2026, 10, 27, 6, 45),
+        var b = Booking(id: "b_x", kind: .classSession, status: .booked, sessionID: "dobson-southern~2026-10-27~0600~cc", title: "Climb Cycle",
+                        clubID: "dobson-southern", category: .mindBody, start: AZ.date(2026, 10, 27, 6, 0), end: AZ.date(2026, 10, 27, 6, 45),
                         detail: "Cycle Studio")
         b.ref = "CP-ABCDE"
         let row = HouseholdMapper.insertRow(b, rowID: "b_x", memberID: "daniel", ownerID: "daniel", householdID: "h3",
-                                            clubName: "Mesa – Dobson", coachSlug: nil, now: now)
+                                            clubName: "Dobson & Southern", coachSlug: nil, now: now)
         XCTAssertEqual(row["kind"], .string("class"))
         XCTAssertEqual(row["status"], .string("booked"))
         XCTAssertEqual(row["category_id"], .string("mind-body"))
-        XCTAssertEqual(row["session_id"], .string("mesa-dobson~2026-10-27~0600~cc"))
+        XCTAssertEqual(row["session_id"], .string("dobson-southern~2026-10-27~0600~cc"))
         XCTAssertEqual(row["place"], .string("Cycle Studio"))
         XCTAssertEqual(row["starts_at"], .string("2026-10-27T13:00:00.000Z"))
     }
@@ -207,7 +207,7 @@ final class LocalCacheTests: XCTestCase {
         let cache = tempCache()
         try cache.write(Fixtures.catalog, to: LocalCache.catalogFile)
         let m = AppModel(cache: cache, client: nil)
-        XCTAssertEqual(m.clubs.map(\.id), ["mesa-dobson"])
+        XCTAssertEqual(m.clubs.map(\.id), ["dobson-southern"])
         XCTAssertFalse(m.sessions.isEmpty)
         XCTAssertNotNil(m.catalogSavedAt)
     }
@@ -217,7 +217,7 @@ final class LocalCacheTests: XCTestCase {
 final class BookingModelTests: XCTestCase {
     func testSpotsLeftIsCapacityMinusSessionCounts() {
         let m = Fixtures.model()
-        let s = m.session("mesa-dobson~2026-10-28~0600~cc")!
+        let s = m.session("dobson-southern~2026-10-28~0600~cc")!
         let free = s.capacity - s.baseBooked
         XCTAssertEqual(m.spotsLeft(s), free)
         m.applyCounts([SessionCountRow(sessionId: s.id, booked: 3, waitlisted: 0)])
@@ -226,7 +226,7 @@ final class BookingModelTests: XCTestCase {
 
     func testCheckingUntilBookingsKnown() {
         let m = Fixtures.model()
-        let s = m.session("mesa-dobson~2026-10-28~0600~cc")!
+        let s = m.session("dobson-southern~2026-10-28~0600~cc")!
         XCTAssertEqual(m.state(for: s), .checking)
         m.applyHousehold(Fixtures.household(bookings: []), savedAt: Date())
         XCTAssertEqual(m.state(for: s), .book)
@@ -235,7 +235,7 @@ final class BookingModelTests: XCTestCase {
     func testInFlightBlocksASecondBooking() {
         let m = Fixtures.model()
         m.applyHousehold(Fixtures.household(bookings: []), savedAt: Date())
-        let s = m.session("mesa-dobson~2026-10-28~0600~cc")!
+        let s = m.session("dobson-southern~2026-10-28~0600~cc")!
         m.inFlight.insert(s.id)
         XCTAssertEqual(m.state(for: s), .booking)
         guard case .rejected = m.book(s) else { return XCTFail("A second tap must not book twice") }
@@ -245,15 +245,15 @@ final class BookingModelTests: XCTestCase {
     func testBookAndCancelUpdateSpots() {
         let m = Fixtures.model()
         m.applyHousehold(Fixtures.household(bookings: []), savedAt: Date())
-        let s = m.session("mesa-dobson~2026-10-28~0600~cc")!
+        let s = m.session("dobson-southern~2026-10-28~0600~cc")!
         guard case .ok(let b) = m.book(s) else { return XCTFail("Book failed") }
         XCTAssertEqual(b.memberID, "daniel")
         XCTAssertTrue(b.ref.hasPrefix("CP-"))
-        XCTAssertEqual(m.spotsLeft(s), 5)
+        XCTAssertEqual(m.spotsLeft(s), 8)
         XCTAssertEqual(m.state(for: s), .booked(late: false))
         let p = m.cancel(b.id)
         XCTAssertEqual(p?.late, false)
-        XCTAssertEqual(m.spotsLeft(s), 6)
+        XCTAssertEqual(m.spotsLeft(s), 9)
         XCTAssertEqual(m.booking(b.id)?.status, .cancelled)
     }
 
@@ -261,19 +261,19 @@ final class BookingModelTests: XCTestCase {
         let m = Fixtures.model()
         m.applyHousehold(Fixtures.household(bookings: []), savedAt: Date())
         let point = m.rollbackPoint()
-        let s = m.session("mesa-dobson~2026-10-28~0600~cc")!
+        let s = m.session("dobson-southern~2026-10-28~0600~cc")!
         _ = m.book(s)
         XCTAssertEqual(m.bookings.count, 1)
         m.restore(point)
         XCTAssertTrue(m.bookings.isEmpty)
-        XCTAssertEqual(m.spotsLeft(s), 6)
+        XCTAssertEqual(m.spotsLeft(s), 9)
     }
 
     func testTrailheadIsHomeClubOnly() {
         let m = Fixtures.model()
         m.applyHousehold(Fixtures.household(bookings: []), savedAt: Date())
         XCTAssertEqual(m.member.plan, .trailhead)
-        XCTAssertEqual(m.member.homeClubID, "mesa-dobson")
-        XCTAssertTrue(m.reserveEligibleClubs(.lane).allSatisfy { $0.id == "mesa-dobson" })
+        XCTAssertEqual(m.member.homeClubID, "dobson-southern")
+        XCTAssertTrue(m.reserveEligibleClubs(.lane).allSatisfy { $0.id == "dobson-southern" })
     }
 }

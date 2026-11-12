@@ -13,7 +13,7 @@ enum Occupancy {
     // MARK: Busyness
     static func level(for v: Double) -> Int { v < 0.2 ? 1 : v < 0.4 ? 2 : v < 0.6 ? 3 : v < 0.8 ? 4 : 5 }
 
-    /// 18 hourly values (4 a.m. to 9 p.m.), 0...1. Made from the club's usual busyness (1 to 5) in the database.
+    /// 18 hourly values (4 am to 9 pm), 0...1. Made from the club's usual busyness (1 to 5) in the database.
     static func popularTimes(club: Club, on date: Date) -> [Double] {
         let levels = AZ.cal.isDateInWeekend(date) ? club.typicalWeekend : club.typicalWeekday
         guard levels.count == 18 else { return Array(repeating: 0.3, count: 18) }
@@ -31,9 +31,9 @@ enum Occupancy {
         let jitter = (Double(stableHash("\(club.id)\(now.cpDayKey)\(hour)\(bucket)") % 100) / 100 - 0.5) * 0.12
         let lvl = level(for: max(0, curve[idx] + jitter))
         let updated = AZ.cal.date(bySettingHour: hour, minute: bucket * 5, second: 0, of: now) ?? now
-        let opens = AZ.cal.isDateInWeekend(now.addingDays(club.isOpen(at: now) ? 0 : 1)) ? "6:00 a.m." : "4:30 a.m."
+        let opens = AZ.cal.isDateInWeekend(now.addingDays(club.isOpen(at: now) ? 0 : 1)) ? "6:00 am" : "4:30 am"
         return BusynessReading(level: lvl, usual: usual, closed: closed,
-                               stale: staleDemo && club.id == "gilbert-val-vista",
+                               stale: staleDemo && club.id == "val-vista-warner",
                                updatedAt: staleDemo ? updated.addingTimeInterval(-22 * 60) : updated, opensText: opens)
     }
 
@@ -45,7 +45,7 @@ enum Occupancy {
         return h < density
     }
     static func courtOverride(club: Club, sport: CourtSport, day: Date, slotMinute: Int, duration: Int) -> [Int]? {
-        if club.id == "mesa-red-mountain", sport == .pickleball, day.cpDayKey == "20261029", duration == 90 {
+        if club.id == "power-mckellips", sport == .pickleball, day.cpDayKey == "20261029", duration == 90 {
             switch slotMinute {
             case 7 * 60: return [2]
             case 8 * 60: return [1, 3, 4]
@@ -74,7 +74,7 @@ enum Occupancy {
         let h = Int(stableHash("\(club.id)|kids|\(day.cpDayKey)|\(block)") % 100)
         return h < 12 ? 0 : (h < 35 ? 1 + h % 5 : 4 + h % 12)
     }
-    static func kidsCapacity(_ club: Club) -> Int { club.id == "mesa-dobson" ? 24 : 16 }
+    static func kidsCapacity(_ club: Club) -> Int { club.id == "dobson-southern" ? 24 : 16 }
 
     // MARK: Personal training
     static func ptAvailable(coach: Coach, day: Date, hour: Int) -> Bool {

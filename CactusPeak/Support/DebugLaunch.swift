@@ -59,7 +59,7 @@ enum DebugLaunch {
     }
 
     @MainActor static func open(_ name: String, _ m: AppModel, _ r: AppRouter) {
-        let vv = "gilbert-val-vista"
+        let vv = "val-vista-warner"
         func sid(_ k: String, _ d: String = "2026-10-29", _ t: String) -> String { "\(vv)~\(d)~\(t)~\(k)" }
         r.dismissSheet()
         func pres(_ sh: AppSheet) { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); r.present(sh) } }
@@ -78,18 +78,18 @@ enum DebugLaunch {
         case "cancelSheet": if let b = m.nextBooking { pres(.cancel(b.id)) }
         case "lateCancel": if let b = m.nextBooking { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); r.requestCancel(b.id) } }
         case "freeCancel": if let b = m.upcomingBookings.first(where: { $0.start.timeIntervalSince(m.now) > 3 * 3600 }) { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); r.requestCancel(b.id) } }
-        case "courts": r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "mesa-red-mountain"
-        case "lanes": r.selection = .book; r.segment = .lanes; r.day = AZ.date(2026, 10, 28); r.reserveClub[.lane] = "mesa-dobson"
+        case "courts": r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "power-mckellips"
+        case "lanes": r.selection = .book; r.segment = .lanes; r.day = AZ.date(2026, 10, 28); r.reserveClub[.lane] = "dobson-southern"
         case "kids": r.selection = .book; r.segment = .kids; r.day = AZ.date(2026, 10, 31); r.reserveClub[.kidsClub] = vv
         case "reserveCourt":
-            r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "mesa-red-mountain"
-            pres(.reserve(ReserveRequest(kind: .court, clubID: "mesa-red-mountain", start: AZ.date(2026, 10, 29, 8, 0), sport: .pickleball, duration: 90)))
+            r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "power-mckellips"
+            pres(.reserve(ReserveRequest(kind: .court, clubID: "power-mckellips", start: AZ.date(2026, 10, 29, 8, 0), sport: .pickleball, duration: 90)))
         case "reserveKids":
             r.selection = .book; r.segment = .kids; r.day = AZ.date(2026, 10, 31)
-            pres(.reserve(ReserveRequest(kind: .kidsClub, clubID: "gilbert-val-vista", start: AZ.date(2026, 10, 31, 8, 0), sport: nil, duration: 120, block: 0)))
+            pres(.reserve(ReserveRequest(kind: .kidsClub, clubID: "val-vista-warner", start: AZ.date(2026, 10, 31, 8, 0), sport: nil, duration: 120, block: 0)))
         case "clubs": r.selection = .clubs
-        case "clubDetail": r.selection = .clubs; r.paths[.clubs] = [.club("gilbert-val-vista")]
-        case "hours": r.selection = .clubs; r.paths[.clubs] = [.club("gilbert-val-vista")]; pres(.hours("gilbert-val-vista"))
+        case "clubDetail": r.selection = .clubs; r.paths[.clubs] = [.club("val-vista-warner")]
+        case "hours": r.selection = .clubs; r.paths[.clubs] = [.club("val-vista-warner")]; pres(.hours("val-vista-warner"))
         case "pass": pres(.pass)
         case "progress": r.selection = .you; r.paths[.you] = [.progress]
         case "coach": r.selection = .clubs; r.paths[.clubs] = [.coach("marisol")]

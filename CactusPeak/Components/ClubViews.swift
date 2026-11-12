@@ -23,14 +23,12 @@ struct ClubCard: View {
     private var listRow: some View {
         let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
         return layout {
-            ClubExteriorArt(slug: club.slug, variant: dts.isAccessibilitySize ? .wide : .thumb)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .frame(width: dts.isAccessibilitySize ? nil : 96, height: 72)
-                .frame(maxWidth: dts.isAccessibilitySize ? .infinity : 96)
+            // Text first, with the club's Set after the name. A picture per club only repeated one Rack.
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     if isHome { Image(systemName: "house.fill").imageScale(.small).foregroundStyle(Color.textMuted).accessibilityLabel("Home club") }
                     Text(club.fullName).font(.headline).fixedSize(horizontal: false, vertical: true)
+                    ClubSet(slug: club.slug, size: 20)
                 }
                 OpenStatus(club: club, now: now)
                 HStack(spacing: 8) {
@@ -53,8 +51,8 @@ struct ClubCard: View {
 
     private var compact: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ClubExteriorArt(slug: club.slug).frame(height: 96)
             VStack(alignment: .leading, spacing: 4) {
+                ClubSet(slug: club.slug, size: 24).padding(.bottom, 4)
                 Text(club.fullName).font(.headline).lineLimit(2)
                 OpenStatus(club: club, now: now)
                 BusynessMeter(reading: reading, variant: .inline, now: now)
@@ -69,9 +67,12 @@ struct ClubCard: View {
 
     private var feature: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ClubExteriorArt(slug: club.slug).frame(height: 180)
             VStack(alignment: .leading, spacing: 6) {
-                Text(club.fullName).font(.archivoExtraBold(22, relativeTo: .title2))
+                ClubSet(slug: club.slug, size: 32).padding(.bottom, 4)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(club.fullName).font(.archivoExtraBold(22, relativeTo: .title2))
+                    Text(club.city).font(.subheadline).foregroundStyle(Color.textMuted)
+                }
                 Text(club.personality).font(.subheadline).foregroundStyle(Color.textMuted)
                 BusynessMeter(reading: reading, variant: .inline, now: now)
             }.padding(16)
@@ -84,11 +85,10 @@ struct ClubCard: View {
 
     private var callout: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ClubExteriorArt(slug: club.slug).aspectRatio(2, contentMode: .fit)
             VStack(alignment: .leading, spacing: 4) {
                 Text(club.fullName).font(.headline)
                 OpenStatus(club: club, now: now)
-                Text("Today \(club.opens(on: now) == 270 ? "4:30 a.m.–10 p.m." : "6 a.m.–8 p.m.")").font(.footnote).foregroundStyle(Color.textMuted)
+                Text("Today \(club.opens(on: now) == 270 ? "4:30 am–10 pm" : "6 am–8 pm")").font(.footnote).foregroundStyle(Color.textMuted)
                 BusynessMeter(reading: reading, variant: .inline, now: now)
             }.padding(12)
         }
@@ -133,7 +133,7 @@ struct HoursTable: View {
             let isToday = AZ.cal.isDate(d, inSameDayAs: now)
             let weekend = AZ.cal.isDateInWeekend(d)
             LabeledContent {
-                Text(weekend ? "6:00 a.m.–8:00 p.m." : "4:30 a.m.–10:00 p.m.").monospacedDigit()
+                Text(weekend ? "6:00 am–8:00 pm" : "4:30 am–10:00 pm").monospacedDigit()
             } label: {
                 HStack(spacing: 6) {
                     if isToday { Circle().fill(club.isOpen(at: now) ? Color.statusSuccess : Color.textMuted).frame(width: 8, height: 8).accessibilityHidden(true) }

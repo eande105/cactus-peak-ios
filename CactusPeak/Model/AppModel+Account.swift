@@ -279,6 +279,6 @@ extension Club {
         let c = AZ.cal.dateComponents([.hour, .minute], from: d)
         let m = (c.hour ?? 0) * 60 + (c.minute ?? 0)
         let day = m < opens(on: d) ? d : d.addingDays(1)
-        return opens(on: day) == 360 ? "6:00 a.m." : "4:30 a.m."
+        return opens(on: day) == 360 ? "6:00 am" : "4:30 am"
     }
 }

@@ -27,12 +27,12 @@ enum DemoAccount: String, CaseIterable, Identifiable, Sendable {
     var email: String { "\(rawValue)@example.com" }
     var title: String {
         switch self {
-        case .maya: "Maya Brandt · Ridge · Val Vista"
+        case .maya: "Maya Brandt · Ridge · Val Vista & Warner"
         case .chris: "Chris Brandt · on Maya's plan"
         case .alicia: "Alicia Ramos · family owner"
         case .jordan: "Jordan Ramos · teen"
-        case .daniel: "Daniel Whitaker · Trailhead · Dobson"
-        case .ron: "Ron Park · Ridge · Red Mountain"
+        case .daniel: "Daniel Whitaker · Trailhead · Dobson & Southern"
+        case .ron: "Ron Park · Ridge · Power & McKellips"
         case .linda: "Linda Park · on Ron's plan"
         }
     }
@@ -66,7 +66,7 @@ struct ToastMessage: Identifiable, Equatable {
 final class AppModel {
     static let shared = AppModel()
 
-    // MARK: Clock (virtual, Arizona time). Sample "now" is Tue Oct 27, 2026, 5:40 a.m.
+    // MARK: Clock (virtual, Arizona time). Sample "now" is Tue Oct 27, 2026, 5:40 am
     // The household's shared clock sets realOrigin and clockOffset (see AppModel+Sync `applyClock`).
     @ObservationIgnored var realOrigin = Date()
     @ObservationIgnored private var virtualOrigin = AZ.date(2026, 10, 27, 5, 40)
@@ -98,7 +98,7 @@ final class AppModel {
     var others: [SessionID: (booked: Int, waitlisted: Int)] = [:]
 
     // MARK: Member and household (from Supabase)
-    var member = MemberProfile(first: "", last: "", plan: .ridge, homeClubID: "gilbert-val-vista",
+    var member = MemberProfile(first: "", last: "", plan: .ridge, homeClubID: "val-vista-warner",
                                memberNumber: "", billingDay: 1, sinceText: "", email: "")
     /// `members.id` and `households.id` of the signed-in member.
     var memberRowID = ""
@@ -126,7 +126,7 @@ final class AppModel {
     var ptSessionsLeft = 0
     var ptExpires = AZ.date(2027, 8, 14)
     var recentSearches = ["Climb Cycle", "Pickleball Open Play"]
-    var passClubID: ClubID = "gilbert-val-vista"
+    var passClubID: ClubID = "val-vista-warner"
     var checkedInAt: Date?
     var hold: ReserveHold?
     var lastCancelled: Booking?

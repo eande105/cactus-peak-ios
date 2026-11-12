@@ -128,7 +128,7 @@ struct CatalogRows: Codable, Hashable, Sendable {
 }
 
 /// `demo_clock()`: one demo clock per household, shared with the web app.
-/// Demo now = Tue Oct 27, 2026, 5:40 a.m. + (real now − startedAt) + skewMs.
+/// Demo now = Tue Oct 27, 2026, 5:40 am + (real now − startedAt) + skewMs.
 struct DemoClockRow: Codable, Hashable, Sendable {
     var startedAt: Date
     var skewMs: Int

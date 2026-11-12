@@ -21,7 +21,7 @@ struct WidgetSnapshot: Codable, Sendable, Hashable {
         var name: String
         var level: Int          // 1...5, 0 = closed or unavailable
         var word: String
-        var hourly: [Double]    // 18 values, 4 a.m. to 9 p.m.
+        var hourly: [Double]    // 18 values, 4 am to 9 pm
         var hourIndex: Int
         var openUntil: String
         var updatedAt: Date
@@ -55,14 +55,14 @@ struct WidgetSnapshot: Codable, Sendable, Hashable {
         return WidgetSnapshot(
             generatedAt: AZ.date(2026, 10, 27, 5, 40),
             next: .init(sessionID: "sample", name: "Climb Cycle", category: .cycle, start: start,
-                        end: start.addingTimeInterval(45 * 60), room: "Cycle studio", clubShort: "Val Vista", intensity: 4),
-            club: .init(slug: "gilbert-val-vista", name: "Gilbert – Val Vista", level: 3, word: "Steady",
+                        end: start.addingTimeInterval(45 * 60), room: "Cycle studio", clubShort: "Val Vista & Warner", intensity: 4),
+            club: .init(slug: "val-vista-warner", name: "Val Vista & Warner", level: 3, word: "Steady",
                         hourly: [0.15, 0.4, 0.55, 0.45, 0.3, 0.25, 0.3, 0.35, 0.3, 0.25, 0.3, 0.45, 0.7, 0.85, 0.75, 0.55, 0.35, 0.2],
-                        hourIndex: 1, openUntil: "10 p.m.", updatedAt: AZ.date(2026, 10, 27, 5, 35)),
+                        hourIndex: 1, openUntil: "10 pm", updatedAt: AZ.date(2026, 10, 27, 5, 35)),
             upcoming: [
-                .init(title: "Climb Cycle", start: start, club: "Val Vista", category: .cycle),
-                .init(title: "Climb Cycle", start: AZ.date(2026, 10, 29, 6, 0), club: "Val Vista", category: .cycle),
-                .init(title: "Kids club", start: AZ.date(2026, 10, 31, 8, 0), club: "Val Vista", category: .youth),
+                .init(title: "Climb Cycle", start: start, club: "Val Vista & Warner", category: .cycle),
+                .init(title: "Climb Cycle", start: AZ.date(2026, 10, 29, 6, 0), club: "Val Vista & Warner", category: .cycle),
+                .init(title: "Kids club", start: AZ.date(2026, 10, 31, 8, 0), club: "Val Vista & Warner", category: .youth),
             ],
             weekVisits: 2, goal: 3, streakWeeks: 6,
             weekDots: [true, false, false, false, false, false, false], todayIndex: 1,
@@ -93,7 +93,7 @@ struct ClassActivityAttributes: ActivityAttributes {
         var phase: Phase
         var startsAt: Date
         var endsAt: Date
-        var startLabel: String      // "6:00 a.m." (Arizona time, formatted by the app)
+        var startLabel: String      // "6:00 am" (Arizona time, formatted by the app)
         var endLabel: String
     }
     var sessionID: String

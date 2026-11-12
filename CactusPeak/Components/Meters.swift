@@ -106,10 +106,10 @@ struct ProgressRibs: View {
 // MARK: - Popular times chart (Swift Charts, with an audio-graph descriptor)
 
 struct HourPoint: Identifiable, Hashable { var id: Int; var hour: Int; var value: Double
-    var label: String { let h12 = hour % 12 == 0 ? 12 : hour % 12; return "\(h12) \(hour < 12 ? "a.m." : "p.m.")" } }
+    var label: String { let h12 = hour % 12 == 0 ? 12 : hour % 12; return "\(h12) \(hour < 12 ? "am" : "pm")" } }
 
 struct PopularTimesChart: View {
-    var values: [Double]      // 18 values from 4 a.m.
+    var values: [Double]      // 18 values from 4 am
     var nowHour: Int?
     var compact = true
     @ScaledMetric(relativeTo: .body) private var baseHeight: CGFloat = 1
@@ -126,7 +126,7 @@ struct PopularTimesChart: View {
         .chartXAxis {
             AxisMarks(values: [6, 12, 18]) { v in
                 AxisValueLabel {
-                    if let h = v.as(Int.self) { Text(h == 12 ? "12 p.m." : (h < 12 ? "\(h) a.m." : "\(h - 12) p.m.")).font(.caption2) }
+                    if let h = v.as(Int.self) { Text(h == 12 ? "12 pm" : (h < 12 ? "\(h) am" : "\(h - 12) pm")).font(.caption2) }
                 }
             }
         }
@@ -142,7 +142,7 @@ struct HourlyDescriptor: AXChartDescriptorRepresentable {
         let y = AXNumericDataAxisDescriptor(title: "Busyness", range: 0...5, gridlinePositions: [1, 2, 3, 4, 5]) { String(format: "%.0f of 5", $0) }
         let series = AXDataSeriesDescriptor(name: "Typical busyness", isContinuous: false,
                                             dataPoints: points.map { AXDataPoint(x: $0.label, y: Double(Occupancy.level(for: $0.value))) })
-        return AXChartDescriptor(title: "Typical busyness by hour", summary: "Busiest around 5 to 7 p.m.", xAxis: x, yAxis: y, additionalAxes: [], series: [series])
+        return AXChartDescriptor(title: "Typical busyness by hour", summary: "Busiest around 5 to 7 pm", xAxis: x, yAxis: y, additionalAxes: [], series: [series])
     }
     func updateChartDescriptor(_ descriptor: AXChartDescriptor) {}
 }
@@ -153,8 +153,8 @@ extension AppModel {
         let busiest = (0..<(v.count - 1)).max { v[$0] + v[$0 + 1] < v[$1] + v[$1 + 1] } ?? 13
         func h(_ i: Int) -> String { let hr = i + 4; let h12 = hr % 12 == 0 ? 12 : hr % 12; return "\(h12)" }
         let end = busiest + 6
-        let suffix = end >= 12 ? "p.m." : "a.m."
-        let quiet = (3..<12).min { v[$0] < v[$1] }.map { q in "\(q + 4 > 12 ? q + 4 - 12 : q + 4) \(q + 4 >= 12 ? "p.m." : "a.m.")" } ?? "mid-morning"
+        let suffix = end >= 12 ? "pm" : "am"
+        let quiet = (3..<12).min { v[$0] < v[$1] }.map { q in "\(q + 4 > 12 ? q + 4 - 12 : q + 4) \(q + 4 >= 12 ? "pm" : "am")" } ?? "mid-morning"
         return "Usually busiest \(h(busiest)) to \(h(busiest + 2)) \(suffix) Quietest around \(quiet)".endingSentence
     }
 }

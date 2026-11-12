@@ -98,7 +98,7 @@ struct SettingsView: View {
             Button("A spot opens on my waitlist") { model.simulatePromotion() }
             Button("Advance clock 30 minutes") { model.jumpClock(by: 30 * 60) }
             Button("Advance clock 1 day") { model.jumpClock(by: 86400) }
-            Button("Reset clock to Tue 5:40 a.m.") { model.restartClock() }
+            Button("Reset clock to Tue 5:40 am") { model.restartClock() }
             Button("Reset sample data") { Task { await model.resetDemoHousehold() } }
             Button("Refresh from server") { Task { await model.refreshAll() } }
         } header: { Text("Demo controls") } footer: { Text("Signing in uses the demo password from Secrets.xcconfig. Reset puts this household back to the seeded rows on the server. Clock controls move the demo time for every device of this household, web included. Strikes, payment and offline controls change this iPhone only.") }

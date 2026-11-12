@@ -30,11 +30,11 @@ private enum SpaceKey: String { case pool, courts, recovery, strength, studios, 
 
 /// The order of the large spaces for each club. The first four become primary spaces. The rest become amenities.
 private let order: [String: [SpaceKey]] = [
-    "mesa-dobson": [.pool, .courts, .recovery, .strength, .studios, .kids],
-    "mesa-red-mountain": [.pool, .courts, .strength, .studios, .kids],
-    "mesa-downtown": [.strength, .studios, .recovery],
-    "gilbert-val-vista": [.pool, .kids, .courts, .strength, .studios, .recovery],
-    "gilbert-heritage": [.strength, .studios, .recovery, .deck],
+    "dobson-southern": [.pool, .courts, .recovery, .strength, .studios, .kids],
+    "power-mckellips": [.pool, .courts, .strength, .studios, .kids],
+    "main-center": [.strength, .studios, .recovery],
+    "val-vista-warner": [.pool, .kids, .courts, .strength, .studios, .recovery],
+    "gilbert-page": [.strength, .studios, .recovery, .deck],
 ]
 
 private func plural(_ n: Int, _ one: String, _ many: String? = nil) -> String { "\(n) \(n == 1 ? one : (many ?? one + "s"))" }
@@ -46,13 +46,13 @@ private func build(_ key: SpaceKey, _ c: Club) -> ClubSpace? {
     case .pool:
         guard c.hasPool else { return nil }
         var a = ["\(c.lanes) lap lanes"]
-        if s == "mesa-dobson" { a.append("Warm-water pool, 90 to 92°F") }
-        if s == "gilbert-val-vista" { a += ["Splash pad", "Swim school, levels 1–5"] }
-        if s == "mesa-red-mountain" { a += ["Shade sails", "Aqua Fit"] }
+        if s == "dobson-southern" { a.append("Warm-water pool, 90 to 92°F") }
+        if s == "val-vista-warner" { a += ["Splash pad", "Swim school, levels 1–5"] }
+        if s == "power-mckellips" { a += ["Shade sails", "Aqua Fit"] }
         a += ["Lane reservations", "Warm showers"]
         return ClubSpace(id: id, graphic: .lapPool,
-                         name: s == "gilbert-val-vista" ? "Pool and splash pad" : s == "mesa-dobson" ? "Pools" : "Pool",
-                         line: s == "mesa-red-mountain" ? "A 25-m outdoor pool under shade sails." : s == "mesa-dobson" ? "A 25-yd lap pool and a warm-water pool." : "A 25-yd lap pool, a splash pad and swim school.",
+                         name: s == "val-vista-warner" ? "Pool and splash pad" : s == "dobson-southern" ? "Pools" : "Pool",
+                         line: s == "power-mckellips" ? "A 25-m outdoor pool under shade sails." : s == "dobson-southern" ? "A 25-yd lap pool and a warm-water pool." : "A 25-yd lap pool, a splash pad and swim school.",
                          amenities: a)
     case .courts:
         guard c.hasCourts else { return nil }
@@ -64,13 +64,13 @@ private func build(_ key: SpaceKey, _ c: Club) -> ClubSpace? {
                          amenities: counts + ["Open play and clinics", "Loaner paddles at the desk"])
     case .recovery:
         guard c.hasRecovery else { return nil }
-        let suite = s == "mesa-dobson" || s == "gilbert-val-vista"
+        let suite = s == "dobson-southern" || s == "val-vista-warner"
         return ClubSpace(id: id, graphic: .recovery, name: suite ? "Recovery suite" : "Recovery lounge", line: "A Summit benefit.",
                          amenities: ["Sauna", "Compression", suite ? "Cold plunge" : "Stretch area"])
     case .strength:
         var a = ["Racks", "Cardio"]
-        if s == "gilbert-heritage" { a.append("Olympic lifting platforms") }
-        if s == "mesa-red-mountain" { a.append("Turf lane") }
+        if s == "gilbert-page" { a.append("Olympic lifting platforms") }
+        if s == "power-mckellips" { a.append("Turf lane") }
         return ClubSpace(id: id, graphic: .strengthFloor, name: "Strength floor",
                          line: c.kind.hasPrefix("Studio club") ? "Racks and a cardio floor, built for a short visit." : "Racks and a cardio floor with room to spread out.",
                          amenities: a)
@@ -82,7 +82,7 @@ private func build(_ key: SpaceKey, _ c: Club) -> ClubSpace? {
         return ClubSpace(id: id, graphic: .kidsClub, name: "Kids club", line: "Ages 6 months to 12 years, while you train.",
                          amenities: ["Monday to Saturday", "2-hour blocks", "Parent check-in", "Allergy notes"])
     case .deck:
-        guard s == "gilbert-heritage" else { return nil }
+        guard s == "gilbert-page" else { return nil }
         return ClubSpace(id: id, graphic: .deck, name: "Rooftop mobility deck", line: "Stretch outdoors at golden hour.",
                          amenities: ["Open-air mobility space", "Lift and stairs"])
     }
@@ -94,9 +94,9 @@ extension Club {
         let all = (order[slug] ?? []).compactMap { build($0, self) }
         let primary = Array(all.prefix(4))
         var amenities = all.dropFirst(4).map { ClubAmenity(id: $0.id, graphic: $0.graphic, name: $0.id == "studios" ? "Studios and cycle" : $0.name) }
-        if slug == "mesa-red-mountain" { amenities.insert(ClubAmenity(id: "deck", graphic: .deck, name: "Cardio deck"), at: 0) }
+        if slug == "power-mckellips" { amenities.insert(ClubAmenity(id: "deck", graphic: .deck, name: "Cardio deck"), at: 0) }
         if hasPool { amenities.append(ClubAmenity(id: "changing", graphic: .lockers, name: "Changing rooms")) }
-        if slug == "mesa-dobson" { amenities.append(ClubAmenity(id: "cafe", graphic: .lounge, name: "Café")) }
+        if slug == "dobson-southern" { amenities.append(ClubAmenity(id: "cafe", graphic: .lounge, name: "Café")) }
         return ClubSpaces(primary: primary, amenities: amenities)
     }
 }

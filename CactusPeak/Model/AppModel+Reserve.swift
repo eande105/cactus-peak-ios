@@ -202,7 +202,7 @@ extension AppModel {
         }
         let chosen = court.flatMap { slot.free.contains($0) ? $0 : nil } ?? slot.free[0]
         if let c = court, !slot.free.contains(c) {
-            return .failed("Someone just took that time. \(courtListText(slot.free)) at \(r.start.cpTime)")
+            return .failed("Someone just took that time. \(courtListText(slot.free)) at \(r.start.cpTime)".endingSentence)
         }
         let undo = rollbackPoint()
         var b = Booking(id: newID("b"), kind: .court, status: .booked, sessionID: nil, title: "\(sport.title) · Court \(chosen)", clubID: club.id,

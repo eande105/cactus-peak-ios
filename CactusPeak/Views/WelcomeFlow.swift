@@ -19,10 +19,8 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // The dark appearance keeps the light sign-in text readable in both modes.
-            ClubExteriorArt(slug: "mesa-red-mountain", variant: .tall)
-                .environment(\.colorScheme, .dark)
-                .ignoresSafeArea()
+            // A plain Night field: the logo and the line carry the screen, so it needs no Rack behind them.
+            Color.nightSurface.ignoresSafeArea()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Spacer(minLength: dts.isAccessibilitySize ? 24 : 120)

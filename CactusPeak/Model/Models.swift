@@ -23,14 +23,14 @@ enum PlanTier: String, Codable, CaseIterable, Sendable, Hashable, Identifiable {
         switch self {
         case .trailhead: "One home club"
         case .ridge: "All 5 clubs"
-        case .summit: "Everything in Ridge, plus recovery"
+        case .summit: "Ridge plus recovery"
         }
     }
     var perks: [String] {
         switch self {
-        case .trailhead: ["One home club", "Classes and pools at that club", "Book classes 7 days ahead"]
-        case .ridge: ["All 5 clubs", "All classes", "Courts, 3 days ahead", "1 guest pass a month", "Book classes 7 days ahead"]
-        case .summit: ["Everything in Ridge", "Recovery suite", "Book classes 9 days ahead", "4 guest passes a month", "Towel service", "1 PT intro session a quarter"]
+        case .trailhead: ["One home club", "Every class at that club", "The pool, if your club has one", "Book classes 7 days ahead"]
+        case .ridge: ["All 5 clubs", "Every class at every club", "All 3 pools", "Courts, book 3 days ahead", "1 guest pass a month", "Book classes 7 days ahead"]
+        case .summit: ["Everything in Ridge", "Recovery suite or lounge", "Book classes 9 days ahead", "4 guest passes a month", "Towel service", "1 PT intro session a quarter"]
         }
     }
 }
@@ -61,11 +61,12 @@ struct Club: Identifiable, Hashable, Sendable, Codable {
     let distanceMiles: Double
     let photoCaptions: [String]
     let toneIndex: Int
-    /// Usual busyness, 1 to 5, one value an hour from 4 a.m. to 9 p.m. (18 values). From `clubs.typical_weekday`.
+    /// Usual busyness, 1 to 5, one value an hour from 4 am to 9 pm (18 values). From `clubs.typical_weekday`.
     let typicalWeekday: [Int]
     let typicalWeekend: [Int]
 
-    var fullName: String { "\(city) – \(area)" }
+    /// The club's name is its cross streets ("Dobson & Southern"). Show `city` on its own line where it matters.
+    var fullName: String { area }
     /// A short fact line for headers. The personality line lives in the club copy, not the hero.
     var factLine: String {
         var p: [String] = []
@@ -102,7 +103,7 @@ struct Club: Identifiable, Hashable, Sendable, Codable {
         return m >= opens(on: date) && m < closes(on: date)
     }
     func openUntilText(on date: Date) -> String {
-        AZ.cal.isDateInWeekend(date) ? "8 p.m." : "10 p.m."
+        AZ.cal.isDateInWeekend(date) ? "8 pm" : "10 pm"
     }
 }
 
@@ -229,7 +230,7 @@ enum RestrictReason: Hashable, Sendable {
     }
     var note: String {
         switch self {
-        case .notOpen: "Bookings open at 6:00 a.m."
+        case .notOpen: "Bookings open at 6:00 am."
         case .frozen: "Resume your membership to book."
         case .paused: "Kids club, check-in and cancelling still work."
         case .pastDue: "Update your card to book again."
