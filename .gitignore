@@ -1,1 +1,4 @@
 Config/Secrets.xcconfig
+
+# Local screenshots, 123 MB
+screenshots/
