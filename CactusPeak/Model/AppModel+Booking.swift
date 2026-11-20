@@ -228,10 +228,10 @@ extension AppModel {
         checkedInAt = t
         visits.append(t)
         let visit: [String: AnyJSON] = ["household_id": .string(householdID), "member_id": .string(memberRowID),
-                                        "club_slug": .string(passClubID), "at": .date(t)]
+                                        "club_slug": .string(currentClubID), "at": .date(t)]
         writeThrough("", rollback: nil, silent: true) { api in try await api.insert("visits", [visit]) }
         // The booking the member walked in for counts as attended.
-        if let i = bookings.firstIndex(where: { $0.kind == .classSession && $0.status == .booked && $0.clubID == passClubID
+        if let i = bookings.firstIndex(where: { $0.kind == .classSession && $0.status == .booked && $0.clubID == currentClubID
             && t > $0.start.addingTimeInterval(-30 * 60) && t < $0.end }) {
             bookings[i].checkedIn = true
         }

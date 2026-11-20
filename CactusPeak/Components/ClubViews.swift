@@ -9,6 +9,8 @@ struct ClubCard: View {
     var isHome = false
     var closest = false
     var selected = false
+    /// Extra lines under the crowd level in the list row: one per area, then next open times.
+    var details: [String] = []
     @Environment(\.dynamicTypeSize) private var dts
 
     var body: some View {
@@ -37,6 +39,7 @@ struct ClubCard: View {
                     Text(String(format: "%.1f mi", club.distanceMiles)).font(.footnote).foregroundStyle(Color.textMuted).monospacedDigit()
                     BusynessMeter(reading: reading, variant: .compact, now: now)
                 }
+                ForEach(details, id: \.self) { Text($0).font(.footnote).foregroundStyle(Color.textMuted).fixedSize(horizontal: false, vertical: true) }
             }
             if !dts.isAccessibilitySize {
                 Spacer(minLength: 0)
@@ -144,5 +147,48 @@ struct HoursTable: View {
             .fontWeight(isToday ? .semibold : .regular)
             .accessibilityElement(children: .combine)
         }
+    }
+}
+
+/// The current club control. Today and Book use it, so the club choice looks the same on both.
+struct ClubPill: View {
+    @Environment(AppModel.self) private var model
+    @Environment(AppRouter.self) private var router
+    var showCrowd = true
+
+    var body: some View {
+        let club = model.club(model.currentClubID)
+        Button { router.present(.clubSwitcher(.viewing)) } label: {
+            HStack(spacing: 8) {
+                Text(club.shortName).font(.subheadline.weight(.semibold)).lineLimit(1)
+                if showCrowd { BusynessMeter(reading: model.busyness(club), variant: .compact, now: model.now) }
+                Image(systemName: "chevron.down").imageScale(.small).accessibilityHidden(true)
+            }
+            .foregroundStyle(Color.textPrimary)
+            .frame(minHeight: 44).contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Club: \(club.fullName). Change club")
+    }
+}
+
+/// One sauna, recovery, pool or therapy pool area: icon, label, crowd meter and the typical level at the hour.
+/// There is no reserve control on an area.
+struct AreaCrowdRow: View {
+    @Environment(AppModel.self) private var model
+    var area: ClubArea
+    var body: some View {
+        let c = model.areaCrowd(area, at: model.now)
+        HStack(spacing: 12) {
+            Image(systemName: area.area.symbol).frame(width: 28).foregroundStyle(Color.textPrimary).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(area.label).font(.headline)
+                Text(CrowdText.usually(level: c.level, at: model.now)).font(.footnote).foregroundStyle(Color.textMuted)
+            }
+            Spacer(minLength: 8)
+            RibMeter(value: c.level, tone: .crowd(c.level), size: .sm, peak: false)
+        }
+        .frame(minHeight: 48)
+        .accessibilityElement(children: .combine)
     }
 }

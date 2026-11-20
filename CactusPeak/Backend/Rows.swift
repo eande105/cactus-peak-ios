@@ -36,6 +36,17 @@ struct ClubRow: Codable, Hashable, Sendable {
     var demoMiles: Double?
 }
 
+/// `club_areas`: sauna, recovery, pool and therapy pool areas. Crowd levels only (1 to 5, one value an hour from 4 am to 9 pm).
+/// The values are typical, not live. Areas are never reservable.
+struct ClubAreaRow: Codable, Hashable, Sendable {
+    var clubSlug: String
+    var area: String
+    var label: String
+    var sort: Int
+    var typicalWeekday: [Int]
+    var typicalWeekend: [Int]
+}
+
 struct CategoryRow: Codable, Hashable, Sendable {
     var id: String
     var sort: Int
@@ -124,7 +135,20 @@ struct CatalogRows: Codable, Hashable, Sendable {
     var plans: [PlanRow] = []
     var ptPacks: [PTPackRow] = []
     var faqs: [FAQRow] = []
+    var clubAreas: [ClubAreaRow] = []
     var isEmpty: Bool { clubs.isEmpty || schedules.isEmpty }
+}
+
+extension CatalogRows {
+    /// Catalog files saved by older builds have no `clubAreas` key. They still load.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(clubs: try c.decode([ClubRow].self, forKey: .clubs), categories: try c.decode([CategoryRow].self, forKey: .categories),
+                  coaches: try c.decode([CoachRow].self, forKey: .coaches), classTypes: try c.decode([ClassTypeRow].self, forKey: .classTypes),
+                  schedules: try c.decode([ScheduleRow].self, forKey: .schedules), plans: try c.decode([PlanRow].self, forKey: .plans),
+                  ptPacks: try c.decode([PTPackRow].self, forKey: .ptPacks), faqs: try c.decode([FAQRow].self, forKey: .faqs),
+                  clubAreas: try c.decodeIfPresent([ClubAreaRow].self, forKey: .clubAreas) ?? [])
+    }
 }
 
 /// `demo_clock()`: one demo clock per household, shared with the web app.

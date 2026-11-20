@@ -11,7 +11,7 @@ struct TodayView: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 20)) { _ in
             let now = model.now
-            let club = model.club(router.viewingClubID)
+            let club = model.club(model.currentClubID)
             List {
                 if model.offline { Section { OfflineBanner(text: "You're offline. \(model.savedDataText)") }.listRowBackground(Color.clear) }
                 statusSection
@@ -28,7 +28,7 @@ struct TodayView: View {
                 UpcomingSection(now: now)
                 Section {
                     ClubNowRow(club: club, reading: model.busyness(club), values: model.popular(club), now: now)
-                } header: { Text("Club now") }
+                } header: { Text("Crowd level") }
                 Section {
                     WeekRow()
                 } header: { Text("This week") }
@@ -49,17 +49,13 @@ struct TodayView: View {
         .navigationTitle(dts.isAccessibilitySize ? "Today" : "Morning, \(model.member.first).")
         .navigationSubtitle(model.now.cpFormat("EEEE, MMM d"))
         .toolbar { toolbar }
-        .sensoryFeedback(.levelChange, trigger: model.busyness(model.club(router.viewingClubID)).level)
+        .sensoryFeedback(.levelChange, trigger: model.busyness(model.club(model.currentClubID)).level)
     }
 
     // MARK: Toolbar
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItem(placement: .topBarLeading) {
-            Button { router.present(.clubSwitcher(.viewing)) } label: {
-                HStack(spacing: 4) { Text(model.club(router.viewingClubID).shortName); Image(systemName: "chevron.down").imageScale(.small) }
-                    .font(.subheadline.weight(.semibold))
-            }
-            .accessibilityLabel("Club: \(model.club(router.viewingClubID).fullName). Change club")
+            ClubPill(showCrowd: false)
         }
         ToolbarItem(placement: .topBarTrailing) {
             Button { router.push(.notifications) } label: { Image(systemName: model.unreadCount > 0 ? "bell.badge" : "bell") }
@@ -67,14 +63,14 @@ struct TodayView: View {
         }
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
         ToolbarItem(placement: .topBarPinnedTrailing) {
-            Button { router.present(.pass) } label: { Image(systemName: model.checkedInToday ? "checkmark.circle" : "qrcode") }.accessibilityLabel("Show check-in pass").accessibilityValue(model.checkedInToday ? "Checked in" : "")
+            Button { router.present(.pass) } label: { Image(systemName: model.checkedInToday ? "checkmark.circle" : "qrcode") }.accessibilityLabel("Show pass").accessibilityValue(model.checkedInToday ? "Checked in" : "")
         }
         .visibilityPriority(.high)
     }
 
     // MARK: Status
     @ViewBuilder private var statusSection: some View {
-        let phone = model.club(model.passClubID).phone
+        let phone = model.club(model.currentClubID).phone
         Group {
             if model.paymentFailedDay >= 15 {
                 Banner(tone: .danger, text: "See the front desk. Your pass will not scan until the balance is paid.", actionTitle: "Call \(phone)") { openURL(URL(string: "tel:\(phone.filter(\.isNumber))")!) }
@@ -154,7 +150,7 @@ struct NextUpCard: View {
         let inProgress = now >= b.start
         let (clock, ampm) = b.start.cpClock
         return VStack(alignment: .leading, spacing: 12) {
-            Button { if let id = b.sessionID { router.push(.classSession(id)) } else { router.push(.myBookings) } } label: {
+            Button { if let id = b.sessionID { router.push(.classSession(id)) } else { router.push(.bookingDetail(b.id)) } } label: {
                 VStack(alignment: .leading, spacing: 8) {
                     let eyebrowLayout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout(spacing: 4))
                     eyebrowLayout {
@@ -315,7 +311,7 @@ struct UpcomingSection: View {
             Section {
                 ForEach(list) { b in
                     Button {
-                        if let s = b.sessionID { router.push(.classSession(s), on: .today) } else { router.push(.myBookings, on: .today) }
+                        if let s = b.sessionID { router.push(.classSession(s), on: .today) } else { router.push(.bookingDetail(b.id), on: .today) }
                     } label: {
                         HStack {
                             BookingRow(booking: b, clubShort: model.club(b.clubID).shortName,

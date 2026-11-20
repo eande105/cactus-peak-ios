@@ -59,7 +59,8 @@ struct ToastMessage: Identifiable, Equatable {
     var id = UUID()
     var text: String
     var undoID: String?
-    var calendarID: String?
+    /// A booking id. The toast shows a View action that opens that booking's detail.
+    var viewID: String?
 }
 
 @MainActor @Observable
@@ -84,6 +85,8 @@ final class AppModel {
     private(set) var coaches: [Coach] = []
     private(set) var sessions: [ClassSession] = []
     private(set) var catalogRows = CatalogRows()
+    /// Sauna, recovery, pool and therapy pool areas per club (`club_areas`).
+    private(set) var clubAreas: [ClubID: [ClubArea]] = [:]
     @ObservationIgnored var clubIndex: [ClubID: Club] = [:]
     @ObservationIgnored var coachIndex: [CoachID: Coach] = [:]
     @ObservationIgnored var sessionIndex: [SessionID: ClassSession] = [:]
@@ -126,7 +129,8 @@ final class AppModel {
     var ptSessionsLeft = 0
     var ptExpires = AZ.date(2027, 8, 14)
     var recentSearches = ["Climb Cycle", "Pickleball Open Play"]
-    var passClubID: ClubID = "val-vista-warner"
+    /// The one club Book, Today and the pass use. Starts at the home club and follows a home-club change.
+    var currentClubID: ClubID = "val-vista-warner"
     var checkedInAt: Date?
     var hold: ReserveHold?
     var lastCancelled: Booking?
@@ -201,6 +205,7 @@ final class AppModel {
         catalogRows = rows
         catalogSavedAt = savedAt
         clubs = CatalogMapper.clubs(rows.clubs)
+        clubAreas = CatalogMapper.areas(rows.clubAreas)
         coaches = CatalogMapper.coaches(rows.coaches, classTypes: rows.classTypes)
         clubIndex = Dictionary(clubs.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         coachIndex = Dictionary(coaches.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -292,6 +297,9 @@ final class AppModel {
 
     // MARK: Busyness
     func busyness(_ club: Club) -> BusynessReading { Occupancy.busyness(club: club, at: now, staleDemo: staleBusyness) }
+    func areas(_ club: Club) -> [ClubArea] { clubAreas[club.id] ?? [] }
+    /// Typical crowd for an area at `at`. Typical, not live: show it as "Usually ...".
+    func areaCrowd(_ area: ClubArea, at: Date) -> (level: Int, word: String) { area.crowd(at: at) }
     func popular(_ club: Club, day: Date? = nil) -> [Double] { Occupancy.popularTimes(club: club, on: day ?? now) }
 
     // MARK: Account status
@@ -320,21 +328,19 @@ final class AppModel {
     func announceBooked(_ b: Booking?) {
         guard let b else { return }
         lastBookedID = b.id
-        let when = "\(b.start.cpFormat("EEE")) \(b.start.cpTime)"
-        let text: String
-        switch (b.kind, b.status) {
-        case (_, .waitlisted): text = "On the waitlist, #\(b.waitlistPosition)"
-        case (.court, _): text = "Court \(b.resource) is yours · \(when)"
-        case (.lane, _): text = "Lane \(b.resource) is yours · \(when)"
-        case (.kids, _): text = "\(b.detail) booked · \(when)"
-        default: text = "Booked · \(when)"
-        }
-        showToast(text, calendarID: b.status == .booked && b.kind != .kids ? b.id : nil)
+        showToast(Self.bookedToastText(b), viewID: b.id)
+    }
+
+    /// The one confirmation for every kind of booking: "Booked · <what> · <time>". A waitlist spot says "Waitlisted".
+    static func bookedToastText(_ b: Booking) -> String {
+        let when = "\(b.start.cpFormat("EEE")) \(b.start.cpTimeShort)"
+        let what = b.kind == .kids ? "Kids club · \(b.detail)" : b.title
+        return "\(b.status == .waitlisted ? "Waitlisted" : "Booked") · \(what) · \(when)"
     }
 
     // MARK: Toasts
-    func showToast(_ text: String, undoID: String? = nil, calendarID: String? = nil) {
-        let t = ToastMessage(text: text, undoID: undoID, calendarID: calendarID)
+    func showToast(_ text: String, undoID: String? = nil, viewID: String? = nil) {
+        let t = ToastMessage(text: text, undoID: undoID, viewID: viewID)
         toast = t
         Task { [weak self] in
             try? await Task.sleep(for: .seconds(8))

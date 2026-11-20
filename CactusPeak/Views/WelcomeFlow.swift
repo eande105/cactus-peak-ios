@@ -289,7 +289,7 @@ struct OnboardingFlow: View {
     private var primaryTitle: String { switch step { case 1, 2: "Continue"; case 3: "Turn on alerts"; case 4: "Continue"; default: "Go to Today" } }
     private func advance() {
         switch step {
-        case 1: if let c = selectedClub { model.setHomeClub(c); router.viewingClubID = model.member.homeClubID }; step = 2
+        case 1: if let c = selectedClub { model.setHomeClub(c) }; step = 2
         case 3: Task { model.notificationsAuthorized = await NotificationSupport.shared.requestAuthorization(); step = 4 }
         case 5:
             model.onboarded = true; step = 1; router.selection = .today

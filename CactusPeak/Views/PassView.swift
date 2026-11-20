@@ -18,15 +18,15 @@ struct PassView: View {
                         stateStrip(st)
                         CheckInPassCard(
                             name: model.member.name, plan: model.member.isTeen ? "Teen pass" : model.member.plan.name,
-                            number: model.member.memberNumber, clubName: model.club(model.passClubID).fullName, code: model.passCode(),
+                            number: model.member.memberNumber, clubName: model.club(model.currentClubID).fullName, code: model.passCode(),
                             codeHidden: hidden(st), checkedInText: checkedText(st),
                             onChangeClub: { showClubPicker = true })
                         if !model.member.isTeen { wallet }
                         kidsToday
                         HStack {
-                            BusynessMeter(reading: model.busyness(model.club(model.passClubID)), variant: .inline, now: model.now)
+                            BusynessMeter(reading: model.busyness(model.club(model.currentClubID)), variant: .inline, now: model.now)
                             Spacer()
-                            Text(model.club(model.passClubID).fullName).font(.footnote).foregroundStyle(Color.textMuted)
+                            Text(model.club(model.currentClubID).fullName).font(.footnote).foregroundStyle(Color.textMuted)
                         }
                         .padding(.horizontal, 4)
                         more
@@ -35,7 +35,7 @@ struct PassView: View {
                 }
             }
             .screenBackground()
-            .navigationTitle("Check-in pass").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("Pass").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
             .sheet(isPresented: $showClubPicker) { ClubSwitcherSheet(mode: .pass).presentationDetents([.medium, .large]) }
             .alert("Wallet pass not available in this build", isPresented: $walletAlert) {
@@ -72,10 +72,10 @@ struct PassView: View {
         case .seeDesk:
             VStack(alignment: .leading, spacing: 8) {
                 Text("See the front desk.").font(.title3.bold()).foregroundStyle(Color.statusDanger)
-                Button("Call the front desk · \(model.club(model.passClubID).phone)") { openURL(URL(string: "tel:\(model.club(model.passClubID).phone.filter(\.isNumber))")!) }.primaryAction()
+                Button("Call the front desk · \(model.club(model.currentClubID).phone)") { openURL(URL(string: "tel:\(model.club(model.currentClubID).phone.filter(\.isNumber))")!) }.primaryAction()
             }
         case .wrongClub(let home): Banner(tone: .warning, text: "Your Trailhead plan covers \(home). A day pass here is $20.", actionTitle: "See plans") { router.dismissSheet(); router.selection = .you; router.paths[.you] = [.membership, .plans] }
-        case .closed(let opens): Banner(tone: .info, text: "\(model.club(model.passClubID).fullName) opens at \(opens)", actionTitle: nil, action: nil)
+        case .closed(let opens): Banner(tone: .info, text: "\(model.club(model.currentClubID).fullName) opens at \(opens)", actionTitle: nil, action: nil)
         case .beforeDesk: Banner(tone: .info, text: "Desk opens at 6:00 am. Scan at the door reader.", actionTitle: nil, action: nil)
         default:
             if model.offline { StatusPill(text: "Offline code", symbol: "wifi.slash", tone: .neutral) }

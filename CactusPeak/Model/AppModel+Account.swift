@@ -219,7 +219,7 @@ extension AppModel {
             homeClubChangedThisCycle = true
         }
         member.homeClubID = id
-        passClubID = id
+        currentClubID = id
         let me = memberRowID, hh = householdID, at = now
         writeThrough("Couldn't change your home club.", rollback: undo) { api in
             try await api.update("members", ids: [me], ["home_club": .string(id)])
@@ -256,8 +256,8 @@ extension AppModel {
     var passState: PassState {
         if isFrozen, let f = freeze { return .frozen(f.end) }
         if paymentFailedDay >= 15 { return .seeDesk }
-        if member.plan == .trailhead && passClubID != member.homeClubID { return .wrongClub(homeClub.fullName) }
-        let club = self.club(passClubID)
+        if member.plan == .trailhead && currentClubID != member.homeClubID { return .wrongClub(homeClub.fullName) }
+        let club = self.club(currentClubID)
         if !club.isOpen(at: now) { return .closed(club.opensText(now)) }
         if checkedInToday, let c = checkedInAt, now.timeIntervalSince(c) < 4 * 3600 { return .checkedIn(c) }
         if paymentFailedDay >= 8 { return .paymentPaused }
@@ -270,7 +270,7 @@ extension AppModel {
     /// The code rotates every 60 seconds. It is made on the device, so the pass works offline.
     func passCode(at d: Date? = nil) -> String {
         let t = Int((d ?? now).timeIntervalSince1970 / 60)
-        return "CPA1|\(member.memberNumber.replacingOccurrences(of: " ", with: ""))|\(passClubID.suffix(6))|\(stableHash("\(member.memberNumber)\(t)") % 1_000_000)"
+        return "CPA1|\(member.memberNumber.replacingOccurrences(of: " ", with: ""))|\(currentClubID.suffix(6))|\(stableHash("\(member.memberNumber)\(t)") % 1_000_000)"
     }
 }
 

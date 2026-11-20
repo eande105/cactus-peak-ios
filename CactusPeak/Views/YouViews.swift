@@ -21,13 +21,12 @@ struct YouView: View {
                 }.buttonStyle(.plain)
             }
             Section {
-                CheckInPassCompact(name: model.member.name, number: model.member.memberNumber, clubName: model.club(model.passClubID).shortName) { router.present(.pass) }
+                CheckInPassCompact(name: model.member.name, number: model.member.memberNumber, clubName: model.club(model.currentClubID).shortName) { router.present(.pass) }
             }
             if model.isTeen {
                 Section { Label("Your plan is managed by \(model.member.ownerFirst).", systemImage: "person.2").font(.subheadline) }
             }
             Section("Activity") {
-                NavigationLink(value: AppRoute.myBookings) { row("Bookings", "ticket", model.upcomingBookings.isEmpty ? nil : "\(model.upcomingBookings.count) upcoming") }
                 NavigationLink(value: AppRoute.progress) { row("Progress", "chart.bar", "\(model.streak.weeks)-week streak") }
             }
             if !model.isTeen {

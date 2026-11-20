@@ -187,8 +187,7 @@ extension AppModel {
         familyClassRows = rows.bookings.filter { $0.kind == "class" && $0.memberId != s.memberID }
             .compactMap { r in r.sessionId.map { ($0, r.status) } }
         if s.onboarded && !onboarded { onboarded = true }
-        if homeChanged || passClubID.isEmpty || clubIndex[passClubID] == nil { passClubID = member.homeClubID }
-        if homeChanged { AppRouter.shared.viewingClubID = member.homeClubID }
+        if homeChanged || currentClubID.isEmpty || clubIndex[currentClubID] == nil { currentClubID = member.homeClubID }
         householdSavedAt = savedAt
         householdLoaded = true
         bookingsKnown = true
@@ -226,7 +225,7 @@ extension AppModel {
         var membershipCancelOn: Date?
         var pendingDowngrade: (PlanTier, Date)?
         var member: MemberProfile
-        var passClubID: ClubID
+        var currentClubID: ClubID
         var homeClubChangedThisCycle: Bool
         var hold: ReserveHold?
     }
@@ -234,7 +233,7 @@ extension AppModel {
     func rollbackPoint() -> Rollback {
         Rollback(bookings: bookings, spotDelta: spotDelta, strikes: strikes, pauseUntil: pauseUntil, people: people, inbox: inbox,
                  guestPasses: guestPasses, guestUsedThisCycle: guestUsedThisCycle, freeze: freeze, membershipCancelOn: membershipCancelOn,
-                 pendingDowngrade: pendingDowngrade, member: member, passClubID: passClubID,
+                 pendingDowngrade: pendingDowngrade, member: member, currentClubID: currentClubID,
                  homeClubChangedThisCycle: homeClubChangedThisCycle, hold: hold)
     }
 
@@ -242,7 +241,7 @@ extension AppModel {
         bookings = r.bookings; spotDelta = r.spotDelta; strikes = r.strikes; pauseUntil = r.pauseUntil; people = r.people
         inbox = r.inbox; guestPasses = r.guestPasses; guestUsedThisCycle = r.guestUsedThisCycle; freeze = r.freeze
         membershipCancelOn = r.membershipCancelOn; pendingDowngrade = r.pendingDowngrade; member = r.member
-        passClubID = r.passClubID; homeClubChangedThisCycle = r.homeClubChangedThisCycle; hold = r.hold
+        currentClubID = r.currentClubID; homeClubChangedThisCycle = r.homeClubChangedThisCycle; hold = r.hold
         visibleUpdate += 1
         publishSnapshot()
         LiveActivityManager.shared.sync(model: self)

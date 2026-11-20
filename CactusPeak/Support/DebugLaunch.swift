@@ -17,7 +17,7 @@ enum DebugLaunch {
         if args.contains("-signedOut") { Task { await m.signOut() } }
         if let p = value("-persona"), let acc = DemoAccount(rawValue: p) {
             Task { @MainActor in
-                do { try await m.signInDemo(acc); m.onboarded = true; r.viewingClubID = m.member.homeClubID }
+                do { try await m.signInDemo(acc); m.onboarded = true; m.currentClubID = m.member.homeClubID }
                 catch { m.showToast(BackendError(error).localizedDescription) }
             }
         }
@@ -78,11 +78,11 @@ enum DebugLaunch {
         case "cancelSheet": if let b = m.nextBooking { pres(.cancel(b.id)) }
         case "lateCancel": if let b = m.nextBooking { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); r.requestCancel(b.id) } }
         case "freeCancel": if let b = m.upcomingBookings.first(where: { $0.start.timeIntervalSince(m.now) > 3 * 3600 }) { Task { @MainActor in try? await Task.sleep(for: .milliseconds(700)); r.requestCancel(b.id) } }
-        case "courts": r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "power-mckellips"
-        case "lanes": r.selection = .book; r.segment = .lanes; r.day = AZ.date(2026, 10, 28); r.reserveClub[.lane] = "dobson-southern"
-        case "kids": r.selection = .book; r.segment = .kids; r.day = AZ.date(2026, 10, 31); r.reserveClub[.kidsClub] = vv
+        case "courts": r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); m.currentClubID = "power-mckellips"
+        case "lanes": r.selection = .book; r.segment = .lanes; r.day = AZ.date(2026, 10, 28); m.currentClubID = "dobson-southern"
+        case "kids": r.selection = .book; r.segment = .kids; r.day = AZ.date(2026, 10, 31); m.currentClubID = vv
         case "reserveCourt":
-            r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); r.reserveClub[.court] = "power-mckellips"
+            r.selection = .book; r.segment = .courts; r.day = AZ.date(2026, 10, 29); m.currentClubID = "power-mckellips"
             pres(.reserve(ReserveRequest(kind: .court, clubID: "power-mckellips", start: AZ.date(2026, 10, 29, 8, 0), sport: .pickleball, duration: 90)))
         case "reserveKids":
             r.selection = .book; r.segment = .kids; r.day = AZ.date(2026, 10, 31)

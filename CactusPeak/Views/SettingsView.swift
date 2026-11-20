@@ -5,6 +5,7 @@ struct SettingsView: View {
     @Environment(AppRouter.self) private var router
     @State private var confirmSignOut: Bool? = nil
     @State private var confirmReset: Bool? = nil
+    @State private var pendingHome: ClubID?
 
     var body: some View {
         @Bindable var model = model
@@ -16,7 +17,7 @@ struct SettingsView: View {
                 Button("Sign out", role: .destructive) { confirmSignOut = true }
             }
             Section {
-                Picker("Home club", selection: Binding(get: { model.member.homeClubID }, set: { model.setHomeClub($0) })) {
+                Picker("Home club", selection: Binding(get: { model.member.homeClubID }, set: { if $0 != model.member.homeClubID { pendingHome = $0 } })) {
                     ForEach(model.clubs) { Text($0.fullName).tag($0.id) }
                 }
                 .disabled(model.isTeen || !model.canChangeHomeClub)
@@ -41,7 +42,7 @@ struct SettingsView: View {
                 Toggle("Keep pass shortcut on", isOn: $model.prefs.keepPassShortcut)
                 Toggle("Auto brightness boost", isOn: $model.prefs.brightnessBoost)
                 Button("Reset my codes") { model.showToast("New codes made. Old codes stop working.") }
-            } header: { Text("Pass") } footer: { Text("The shortcut shows a Show pass bar above the tab bar on every tab.") }
+            } header: { Text("Pass") } footer: { Text("The shortcut shows a Show pass bar above the tab bar on the first screen of every tab.") }
             Section {
                 LabeledContent("App icon", value: "Peak")
                 Toggle("Haptics", isOn: $model.prefs.haptics)
@@ -67,6 +68,7 @@ struct SettingsView: View {
             #endif
         }
         .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+        .homeClubConfirmation($pendingHome)
         .confirmationDialog("Sign out?", item: $confirmSignOut, titleVisibility: .visible) { _ in
             Button("Sign out", role: .destructive) {
                 Task { await model.signOut(); router.paths = [:]; router.selection = .today }

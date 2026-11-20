@@ -20,6 +20,15 @@ enum Occupancy {
         return levels.map { min(1, max(0, (Double($0) - 0.5) / 5)) }
     }
 
+    /// Hour index into an 18-value typical array: 0 is 4 am, 17 is 9 pm. Hours outside that range use the nearest end.
+    static func hourIndex(_ date: Date) -> Int { min(max(AZ.cal.component(.hour, from: date) - 4, 0), 17) }
+
+    /// Typical level 1 to 5 for the hour of `date`. Same value the club busyness curve gives before its jitter. A bad array gives 2.
+    static func typicalLevel(_ levels: [Int], at date: Date) -> Int {
+        guard levels.count == 18 else { return 2 }
+        return min(max(levels[hourIndex(date)], 1), 5)
+    }
+
     static func busyness(club: Club, at now: Date, staleDemo: Bool) -> BusynessReading {
         let closed = !club.isOpen(at: now)
         let c = AZ.cal.dateComponents([.hour, .minute], from: now)

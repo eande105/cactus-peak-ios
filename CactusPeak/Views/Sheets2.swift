@@ -8,23 +8,9 @@ struct FiltersSheet: View {
     @Environment(AppRouter.self) private var router
     var body: some View {
         @Bindable var router = router
-        let ids = router.filters.clubs.isEmpty ? [router.viewingClubID] : Array(router.filters.clubs)
-        let count = liveCount(ids)
+        let count = liveCount([model.currentClubID])
         NavigationStack {
             Form {
-                Section("Club") {
-                    ForEach(model.clubs) { c in
-                        let locked = model.member.plan == .trailhead && c.id != model.member.homeClubID
-                        Button {
-                            if router.filters.clubs.contains(c.id) { router.filters.clubs.remove(c.id) } else { router.filters.clubs.insert(c.id) }
-                        } label: {
-                            HStack { VStack(alignment: .leading) { Text(c.fullName).foregroundStyle(locked ? Color.textMuted : Color.textPrimary)
-                                if locked { Text("Ridge only").font(.footnote).foregroundStyle(Color.textMuted) } }
-                                Spacer(); if router.filters.clubs.contains(c.id) { Image(systemName: "checkmark").foregroundStyle(Color.brandAccent) } }
-                            .frame(minHeight: 44).contentShape(Rectangle())
-                        }.buttonStyle(.plain).disabled(locked)
-                    }
-                }
                 Section("Category") {
                     ForEach(ClassCategory.allCases) { c in
                         Button { toggle(c) } label: {
@@ -57,7 +43,7 @@ struct FiltersSheet: View {
                 Section("Options") {
                     Toggle("Good for first-timers", isOn: $router.filters.firstTimers)
                     Toggle("Spots open only", isOn: $router.filters.spotsOnly)
-                    Toggle("My bookings", isOn: $router.filters.myBookings)
+                    Toggle("Bookings", isOn: $router.filters.myBookings)
                 }
             }
             .navigationTitle("Filters").navigationBarTitleDisplayMode(.inline)

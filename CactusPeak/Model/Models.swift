@@ -107,6 +107,38 @@ struct Club: Identifiable, Hashable, Sendable, Codable {
     }
 }
 
+extension Club {
+    /// The club's typical crowd level (1 to 5) for the hour of `date`, from `typicalWeekday` or `typicalWeekend`. No randomness.
+    func typicalLevel(at date: Date) -> Int {
+        Occupancy.typicalLevel(AZ.cal.isDateInWeekend(date) ? typicalWeekend : typicalWeekday, at: date)
+    }
+}
+
+enum ClubAreaKind: String, Codable, Sendable, Hashable, CaseIterable {
+    case pool, therapyPool = "therapy_pool", sauna, recovery
+    var symbol: String {
+        switch self { case .pool: "figure.pool.swim"; case .therapyPool: "drop.fill"; case .sauna: "flame"; case .recovery: "snowflake" }
+    }
+}
+
+/// A sauna, recovery, pool or therapy pool area. It shows a crowd level only and is never reservable.
+struct ClubArea: Identifiable, Hashable, Sendable, Codable {
+    let clubID: ClubID
+    let area: ClubAreaKind
+    let label: String
+    let sort: Int
+    /// Typical crowd, 1 to 5, one value an hour from 4 am to 9 pm (18 values). Typical, not live.
+    let typicalWeekday: [Int]
+    let typicalWeekend: [Int]
+    var id: String { "\(clubID)|\(area.rawValue)" }
+
+    /// Typical level and word for the hour of `date`.
+    func crowd(at date: Date) -> (level: Int, word: String) {
+        let level = Occupancy.typicalLevel(AZ.cal.isDateInWeekend(date) ? typicalWeekend : typicalWeekday, at: date)
+        return (level, BusynessReading.word(level))
+    }
+}
+
 enum CourtSport: String, CaseIterable, Codable, Sendable, Hashable, Identifiable {
     case pickleball, tennis, basketball
     var id: String { rawValue }
@@ -326,6 +358,18 @@ struct Prefs: Equatable, Sendable {
 }
 
 // MARK: - Busyness
+
+enum CrowdText {
+    /// "Usually busy at 6 pm". Typical levels are not live, so the copy never says "now". The time is the hour of `date`.
+    static func usually(level: Int, at date: Date) -> String {
+        "Usually \(BusynessReading.word(level).lowercased()) at \(hourStart(date).cpTimeShort)"
+    }
+    /// "Usually busy", for a line that already names the hour or the area.
+    static func usually(level: Int) -> String { "Usually \(BusynessReading.word(level).lowercased())" }
+    static func hourStart(_ date: Date) -> Date {
+        AZ.cal.date(bySettingHour: AZ.cal.component(.hour, from: date), minute: 0, second: 0, of: date) ?? date
+    }
+}
 
 struct BusynessReading: Hashable, Sendable {
     var level: Int           // 1...5

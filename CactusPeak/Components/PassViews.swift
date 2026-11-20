@@ -98,7 +98,7 @@ struct CheckInPassCompact: View {
             RibPeakShape().fill(Color.dawnCopper).frame(width: 34, height: 34).padding(8)
                 .background(Color.nightSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous)).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Check-in pass").font(.headline).lineLimit(1)
+                Text("Pass").font(.headline).lineLimit(1)
                 Text(number).font(.subheadline).foregroundStyle(Color.textMuted).monospacedDigit()
             }
             Spacer(minLength: 8)

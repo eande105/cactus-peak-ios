@@ -24,8 +24,9 @@ struct BackendAPI: Sendable {
         async let plans = rows("plans", PlanRow.self)
         async let packs = rows("pt_packs", PTPackRow.self)
         async let faqs = rows("faqs", FAQRow.self) { $0.eq("audience", value: "member") }
+        async let areas = rows("club_areas", ClubAreaRow.self)
         return try await CatalogRows(clubs: clubs, categories: categories, coaches: coaches, classTypes: types,
-                                     schedules: schedules, plans: plans, ptPacks: packs, faqs: faqs)
+                                     schedules: schedules, plans: plans, ptPacks: packs, faqs: faqs, clubAreas: areas)
     }
 
     /// Booked and waitlisted counts for every class session in the range, across all households.

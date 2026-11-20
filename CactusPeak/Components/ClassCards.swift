@@ -8,13 +8,16 @@ struct ClassRowData: Identifiable, Hashable {
     var left: Int
     var waitlist: Int
     var state: BookingState
+    /// "Usually busy at 6 pm": the club's typical crowd at the class hour. Typical, not live.
+    var crowd: String
     var id: String { session.id }
 }
 
 extension AppModel {
     func rowData(_ s: ClassSession) -> ClassRowData {
         ClassRowData(session: s, coach: coach(s.coachID), clubShort: club(s.clubID).shortName, left: spotsLeft(s),
-                     waitlist: waitlistCount(s), state: state(for: s))
+                     waitlist: waitlistCount(s), state: state(for: s),
+                     crowd: CrowdText.usually(level: club(s.clubID).typicalLevel(at: s.start), at: s.start))
     }
 }
 
@@ -87,10 +90,13 @@ struct ClassRow: View {
     }
 
     private func detailLine(_ s: ClassSession) -> some View {
-        HStack(spacing: 6) {
-            Text("\(data.coach.shortName) · \(s.room)\(showClub ? " · \(data.clubShort)" : "")")
-                .font(.subheadline).foregroundStyle(Color.textMuted).lineLimit(1)
-            RibMeter(value: s.intensity, tone: .category(s.category), size: .sm, peak: false)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                Text("\(data.coach.shortName) · \(s.room)\(showClub ? " · \(data.clubShort)" : "")")
+                    .font(.subheadline).foregroundStyle(Color.textMuted).lineLimit(1)
+                RibMeter(value: s.intensity, tone: .category(s.category), size: .sm, peak: false)
+            }
+            Text(data.crowd).font(.caption).foregroundStyle(Color.textMuted).lineLimit(1)
         }
     }
 
@@ -104,7 +110,7 @@ struct ClassRow: View {
             HStack(spacing: 3) {
                 if low { Image(systemName: "exclamationmark.triangle.fill").imageScale(.small).accessibilityHidden(true) }
                 Text(data.left == 0 ? (data.waitlist > 0 ? "Full · Waitlist \(data.waitlist)" : "Full")
-                     : (dropIn ? "Drop-in · \(data.left) left" : "\(data.left) \(data.left == 1 ? String(s.spotNoun.dropLast()) : s.spotNoun) left"))
+                     : (dropIn ? "Drop-in · \(data.left) left" : "\(data.left) \(data.left == 1 ? "spot" : "spots") left"))
                     .contentTransition(.numericText())
             }
             .font(.caption.weight(.medium)).foregroundStyle(low ? Color.statusWarning : Color.textMuted)

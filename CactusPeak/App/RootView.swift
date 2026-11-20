@@ -29,8 +29,8 @@ struct RootView: View {
         .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
         .tabViewSearchActivation(.searchTabSelection)
-        .tabViewBottomAccessory(isEnabled: shouldOfferPass && onRoot && router.selection == .book && !dts.isAccessibilitySize && !model.isFrozen) {
-            PassAccessory(clubName: model.nextBooking.map { "\($0.title) \($0.start.cpTimeShort)" } ?? model.club(model.passClubID).shortName) {
+        .tabViewBottomAccessory(isEnabled: shouldOfferPass && onRoot && !dts.isAccessibilitySize && !model.isFrozen) {
+            PassAccessory(clubName: model.nextBooking.map { "\($0.title) \($0.start.cpTimeShort)" } ?? model.club(model.currentClubID).shortName) {
                 router.present(.pass)
             } onClose: {
                 accessoryHiddenUntil = model.now.addingTimeInterval(4 * 3600)
@@ -57,7 +57,7 @@ struct RootView: View {
                 }
                 if let alt = model.sameClassThisWeek(b).first, b.kind == .classSession {
                     Button("Reschedule") {
-                        router.day = alt.start.startOfAZDay; router.segment = .classes; router.viewingClubID = alt.clubID
+                        router.day = alt.start.startOfAZDay; router.segment = .classes; model.currentClubID = alt.clubID
                         router.selection = .book; router.paths[.book] = []
                     }
                 }
@@ -85,13 +85,20 @@ struct RootView: View {
     @ViewBuilder private var toastBar: some View {
         if let t = model.toast {
             ToastView(toast: t, undo: { if let id = t.undoID { model.undoCancel(id) } },
-                      calendar: { if let id = t.calendarID { model.toast = nil; router.present(.calendar(id)) } })
+                      view: { if let id = t.viewID { openBooking(id) } })
                 .padding(.horizontal, 16).padding(.bottom, 6)
                 .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
         }
     }
 
-    /// The pass bar shows on root screens only, so it never stacks with a pushed screen's action bar.
+    /// A class opens its class detail. A court, lap lane or kids club booking opens its booking detail.
+    private func openBooking(_ id: BookingID) {
+        model.toast = nil
+        guard let b = model.booking(id) else { return }
+        if b.kind == .classSession, let s = b.sessionID { router.push(.classSession(s)) } else { router.push(.bookingDetail(id)) }
+    }
+
+    /// The pass bar shows on the root screen of every tab except Search, so it never stacks with a pushed screen's action bar.
     private var onRoot: Bool { (router.paths[router.selection] ?? []).isEmpty && router.selection != .search }
 
     private var shouldOfferPass: Bool {
@@ -151,7 +158,6 @@ struct RouteView: View {
         case .club(let id): ClubDetailView(clubID: id)
         case .coach(let id): CoachProfileView(coachID: id)
         case .coachList(let id): CoachListView(clubID: id)
-        case .reserve(let kind, let club): ReserveRouteView(kind: kind, clubID: club)
         case .membership: MembershipView()
         case .plans: PlansView()
         case .freeze: FreezeView()

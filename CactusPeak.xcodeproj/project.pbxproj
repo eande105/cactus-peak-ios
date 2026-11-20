@@ -72,6 +72,7 @@
 		E5D9613DAC2F95762B885449 /* PlatformViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54B4F6902BA203EAD104F1B /* PlatformViews.swift */; };
 		E748004FFCFFD0E07880FF03 /* BrandGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FE5F7560FF2E3C966965 /* BrandGraphics.swift */; };
 		E8D018C19CEF74C57676A93E /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98702C5A5BAEBAEDDB9AA1DD /* Style.swift */; };
+		EA6729344A7B723DFD4DE1AF /* ClubAreaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BE2A999898C0959278BDD9 /* ClubAreaTests.swift */; };
 		F13E54B231DFC6459A34634F /* YouViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC4CE85263BA117FDEFC06E0 /* YouViews.swift */; };
 		F1CE7AEAEA1910B002DB217D /* CactusPeakWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9A0163BB0104A00732F80AAB /* CactusPeakWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F407961B8D3A89A4BC38F286 /* MyBookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71CA5524EFC3A805AF05E1E /* MyBookingsView.swift */; };
@@ -175,6 +176,7 @@
 		DF20A5F2D7B0AF5D75B09396 /* Snapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Snapshot.swift; sourceTree = "<group>"; };
 		E05A409B83009BA632B6E3F6 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		E43A6191C992DDBA192DEEE1 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		E8BE2A999898C0959278BDD9 /* ClubAreaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubAreaTests.swift; sourceTree = "<group>"; };
 		E990296545F761211D4721FD /* ProgressScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScreen.swift; sourceTree = "<group>"; };
 		F0F2CA2E4E0D4C568E3DFA8C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		F15685020309F84C57783AD3 /* Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule.swift; sourceTree = "<group>"; };
@@ -324,6 +326,7 @@
 			isa = PBXGroup;
 			children = (
 				DF19050D2F82343EBF2E860B /* BackendTests.swift */,
+				E8BE2A999898C0959278BDD9 /* ClubAreaTests.swift */,
 				DDFDCD9855814732C51FCFA3 /* CopyTests.swift */,
 				AD1F7D747D23BDF73C469B38 /* Fixtures.swift */,
 				3987FA4C420E1BFA4A12EFB0 /* SessionBaselineTests.swift */,
@@ -528,6 +531,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CA9E7AED91E62E7580DEAF45 /* BackendTests.swift in Sources */,
+				EA6729344A7B723DFD4DE1AF /* ClubAreaTests.swift in Sources */,
 				CB5FF471B0B3ACCB53E0698C /* CopyTests.swift in Sources */,
 				4BCC9CB6BFDC4A6E68D1BC75 /* Fixtures.swift in Sources */,
 				F8E529F6C69ABE7DE021D26E /* SessionBaselineTests.swift in Sources */,

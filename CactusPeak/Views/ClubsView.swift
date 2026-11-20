@@ -94,18 +94,27 @@ struct ClubsView: View {
             }
             Section {
                 ForEach(shown.sorted { $0.distanceMiles < $1.distanceMiles }) { c in
-                    Button { selected = c.id } label: {
+                    // A tap opens the club and also selects its pin.
+                    Button { selected = c.id; router.push(.club(c.id)) } label: {
                         HStack {
-                            ClubCard(club: c, reading: model.busyness(c), now: model.now, variant: .listRow, isHome: c.id == model.member.homeClubID, selected: selected == c.id)
-                            Button { router.push(.club(c.id)) } label: { Image(systemName: "chevron.right").frame(width: 44, height: 88) }
-                                .buttonStyle(.plain).foregroundStyle(Color.textMuted).accessibilityLabel("Open \(c.fullName)")
+                            ClubCard(club: c, reading: model.busyness(c), now: model.now, variant: .listRow, isHome: c.id == model.member.homeClubID, selected: selected == c.id,
+                                     details: details(c))
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted).accessibilityHidden(true)
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityHint("Opens club details")
                 }
             }
         }
         .listStyle(.plain).scrollContentBackground(.hidden).background(Color.appBackground)
+    }
+
+    /// One line per area ("Sauna · Usually busy"), then the next open time for what the club has.
+    private func details(_ c: Club) -> [String] {
+        let areas = model.areas(c).map { "\($0.label) · \(CrowdText.usually(level: model.areaCrowd($0, at: model.now).level))" }
+        let open = ReserveKind.allCases.compactMap { model.nextOpenLine($0, club: c) }
+        return areas + open
     }
 
     private func search() {

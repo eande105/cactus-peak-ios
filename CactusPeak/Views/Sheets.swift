@@ -81,7 +81,7 @@ struct CancelSheet: View {
                                 Button("Reschedule instead") {
                                     router.dismissSheet()
                                     router.day = alt[0].start.startOfAZDay; router.segment = .classes
-                                    router.viewingClubID = alt[0].clubID; router.selection = .book; router.paths[.book] = []
+                                    model.currentClubID = alt[0].clubID; router.selection = .book; router.paths[.book] = []
                                 }.secondaryAction(full: true)
                             }
                             Button("Cancel booking") { confirm(b, p) }.linkAction(danger: true).frame(maxWidth: .infinity)
@@ -197,7 +197,6 @@ struct ReserveSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
     let request: ReserveRequest
-    @State private var duration = 90
     @State private var court = 0           // 0 = any
     @State private var lane = 0
     @State private var chosenKids: Set<PersonID> = []
@@ -206,9 +205,8 @@ struct ReserveSheet: View {
     @State private var reserved = false
 
     private var club: Club { model.club(request.clubID) }
-    private var req: ReserveRequest {
-        var r = request; r.duration = request.kind == .court ? duration : request.duration; return r
-    }
+    /// Court length comes from `router.duration`, set before the sheet opens. The sheet has no second control for it.
+    private var req: ReserveRequest { request }
 
     var body: some View {
         NavigationStack {
@@ -230,9 +228,8 @@ struct ReserveSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { router.dismissSheet() } } }
         }
-        .onAppear { reserved = false; duration = request.duration == 60 ? 60 : (request.kind == .court ? request.duration : 90); model.beginHold(req, label: summary) }
+        .onAppear { reserved = false; model.beginHold(req, label: summary) }
         .onDisappear { if !reserved { model.endHold() } }
-        .onChange(of: duration) { _, _ in model.beginHold(req, label: summary) }
     }
 
     private var summary: String {
@@ -278,8 +275,8 @@ struct ReserveSheet: View {
     // Courts
     @ViewBuilder private var courtBody: some View {
         let sport = request.sport ?? .pickleball
-        let slot = model.courtSlots(club: club, sport: sport, day: request.start.startOfAZDay, duration: duration).first { $0.start == request.start }
-        DurationChips(options: [60, 90], selected: $duration)
+        let slot = model.courtSlots(club: club, sport: sport, day: request.start.startOfAZDay, duration: request.duration).first { $0.start == request.start }
+        LabeledContent("Length", value: "\(request.duration) min").font(.subheadline)
         VStack(alignment: .leading, spacing: 4) {
             Text("Court").font(.subheadline.weight(.semibold))
             ChoiceList(selection: $court, options: [(0, "Any court", nil)] + (1...max(club.courts(for: sport), 1)).map { c in
@@ -382,41 +379,26 @@ struct ClubSwitcherSheet: View {
             .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) }
-                if case .filter = mode { ToolbarItem(placement: .topBarLeading) { Button("Reset") { router.filters.clubs = [] } } }
             }
         }
     }
 
     private var title: String {
-        switch mode { case .pass: "Check in at"; case .filter: "Clubs"; case .viewing: "Club"; case .reserve(let k): k.title }
+        switch mode { case .pass: "Check in at"; case .viewing: "Club" }
     }
     private var clubs: [Club] {
         model.clubs.filter { query.isEmpty || $0.fullName.localizedCaseInsensitiveContains(query) || $0.zip.contains(query) }
     }
     private func isSelected(_ c: Club) -> Bool {
-        switch mode {
-        case .viewing: router.viewingClubID == c.id
-        case .pass: model.passClubID == c.id
-        case .filter: router.filters.clubs.contains(c.id)
-        case .reserve(let k): router.reserveClub[k] == c.id
-        }
+        model.currentClubID == c.id
     }
     private func disabledReason(_ c: Club) -> String? {
-        if model.member.plan == .trailhead, c.id != model.member.homeClubID, mode != .viewing { if case .pass = mode { return nil }; return "Ridge only" }
-        if case .reserve(let k) = mode {
-            switch k { case .court: if !c.hasCourts { return "No courts here" }
-            case .lane: if !c.hasPool { return "No pool here" }
-            case .kidsClub: if !c.hasKids { return "No kids club here" } }
-        }
-        return nil
+        nil
     }
     private func select(_ c: Club) {
-        switch mode {
-        case .viewing: router.viewingClubID = c.id; router.dismissSheet()
-        case .pass: model.passClubID = c.id; router.dismissSheet()
-        case .filter: if router.filters.clubs.contains(c.id) { router.filters.clubs.remove(c.id) } else { router.filters.clubs.insert(c.id) }
-        case .reserve(let k): router.reserveClub[k] = c.id; if k == .court, c.courts(for: router.sport) == 0, let sp = c.courtSports.first { router.sport = sp }; router.dismissSheet()
-        }
+        model.currentClubID = c.id
+        if c.courts(for: router.sport) == 0, let sp = c.courtSports.first { router.sport = sp }
+        router.dismissSheet()
     }
 }
 

@@ -64,6 +64,34 @@ extension AppModel {
         clubsFor(kind).filter { member.plan.allClubs || $0.id == member.homeClubID }
     }
 
+    /// The start of the next open court slot, lap lane slot or kids club block at `club`, or nil if the club has none
+    /// of that kind or nothing is open in the booking window.
+    func nextOpen(_ kind: ReserveKind, club: Club) -> Date? {
+        let hasKind: Bool = switch kind { case .court: club.hasCourts; case .lane: club.hasPool; case .kidsClub: club.hasKids }
+        guard hasKind else { return nil }
+        for day in reserveDays(kind) where reserveOpensAt(day, kind: kind) <= now {
+            switch kind {
+            case .court:
+                let sport = club.courtSports.first ?? .pickleball
+                if let s = courtSlots(club: club, sport: sport, day: day, duration: 60).first(where: { !$0.past && !$0.free.isEmpty }) { return s.start }
+            case .lane:
+                if let s = laneSlots(club: club, day: day).first(where: { !$0.past && $0.bookable > 0 }) { return s.start }
+            case .kidsClub:
+                if AZ.cal.component(.weekday, from: day) == 1 { continue }
+                if let b = kidsBlocks(club: club, day: day).first(where: { !$0.past && $0.spotsLeft > 0 }) { return b.start }
+            }
+        }
+        return nil
+    }
+
+    /// "Courts · next open 6:30 pm", with the weekday when it is not today.
+    func nextOpenLine(_ kind: ReserveKind, club: Club) -> String? {
+        guard club.hasCourts || kind != .court, club.hasPool || kind != .lane, club.hasKids || kind != .kidsClub else { return nil }
+        guard let d = nextOpen(kind, club: club) else { return "\(kind.title) · nothing open soon" }
+        let day = AZ.cal.isDate(d, inSameDayAs: now) ? "" : "\(d.cpWeekdayShort) "
+        return "\(kind.title) · next open \(day)\(d.cpTimeShort)"
+    }
+
     // MARK: Courts
     func courtSlots(club: Club, sport: CourtSport, day: Date, duration: Int) -> [CourtSlot] {
         let total = club.courts(for: sport)
@@ -118,7 +146,7 @@ extension AppModel {
     }
     func laneRowText(_ s: LaneSlot, total: Int) -> String {
         if s.bookable == 0 { return "Full" }
-        var t = "\(s.open) lane\(s.open == 1 ? "" : "s") open"
+        var t = "\(s.open) of \(total) lanes open"
         if s.shared > 0 { t += " · +\(s.shared) to share" }
         return t
     }

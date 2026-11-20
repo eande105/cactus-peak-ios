@@ -3,10 +3,15 @@ import Charts
 
 // MARK: - Busyness
 
-extension BusynessReading {
-    var tone: RibTone {
-        switch level { case 1, 2: .success; case 3: .neutral; case 4: .warning; default: .danger }
+extension RibTone {
+    /// Tone for a crowd level, 1 to 5.
+    static func crowd(_ level: Int) -> RibTone {
+        switch level { case ...2: .success; case 3: .neutral; case 4: .warning; default: .danger }
     }
+}
+
+extension BusynessReading {
+    var tone: RibTone { RibTone.crowd(level) }
 }
 
 struct BusynessMeter: View {
@@ -18,13 +23,13 @@ struct BusynessMeter: View {
     private var unavailable: Bool { reading.stale }
     private var valueText: String {
         if reading.closed { return "Closed · opens \(reading.opensText)" }
-        if reading.stale { return "Busyness unavailable" }
+        if reading.stale { return "Crowd level unavailable" }
         return reading.word
     }
     private var a11y: String {
         if reading.closed { return "Closed. Opens \(reading.opensText)" }
-        if reading.stale { return "Busyness unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) minutes ago." }
-        return "Busyness \(reading.word), \(reading.level) of 5. Updated \(reading.updatedAt.cpTime)"
+        if reading.stale { return "Crowd level unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) minutes ago." }
+        return "Crowd level \(reading.word), \(reading.level) of 5. Updated \(reading.updatedAt.cpTime)"
     }
 
     var body: some View {
@@ -59,7 +64,7 @@ struct BusynessMeter: View {
                             Text(reading.level == reading.usual ? "About usual" : (reading.level > reading.usual ? "Busier than usual" : "Quieter than usual"))
                                 .font(.subheadline.weight(.medium)).foregroundStyle(Color.textMuted)
                         }
-                        Text(unavailable ? "Busyness unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTime)")
+                        Text(unavailable ? "Crowd level unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTime)")
                             .font(.caption).foregroundStyle(Color.textMuted)
                     }
                 }
@@ -117,7 +122,7 @@ struct PopularTimesChart: View {
     var body: some View {
         let pts = values.enumerated().map { HourPoint(id: $0.offset, hour: $0.offset + 4, value: $0.element) }
         Chart(pts) { p in
-            BarMark(x: .value("Hour", p.hour), y: .value("Busyness", max(p.value, 0.03)), width: .fixed(compact ? 9 : 12))
+            BarMark(x: .value("Hour", p.hour), y: .value("Crowd level", max(p.value, 0.03)), width: .fixed(compact ? 9 : 12))
                 .foregroundStyle(p.hour == nowHour ? Color.brandAccent : Color.brandSecondary.opacity(0.35))
                 .cornerRadius(2)
         }
@@ -139,8 +144,8 @@ struct HourlyDescriptor: AXChartDescriptorRepresentable {
     var points: [HourPoint]
     func makeChartDescriptor() -> AXChartDescriptor {
         let x = AXCategoricalDataAxisDescriptor(title: "Hour", categoryOrder: points.map(\.label))
-        let y = AXNumericDataAxisDescriptor(title: "Busyness", range: 0...5, gridlinePositions: [1, 2, 3, 4, 5]) { String(format: "%.0f of 5", $0) }
-        let series = AXDataSeriesDescriptor(name: "Typical busyness", isContinuous: false,
+        let y = AXNumericDataAxisDescriptor(title: "Crowd level", range: 0...5, gridlinePositions: [1, 2, 3, 4, 5]) { String(format: "%.0f of 5", $0) }
+        let series = AXDataSeriesDescriptor(name: "Typical crowd level", isContinuous: false,
                                             dataPoints: points.map { AXDataPoint(x: $0.label, y: Double(Occupancy.level(for: $0.value))) })
         return AXChartDescriptor(title: "Typical busyness by hour", summary: "Busiest around 5 to 7 pm", xAxis: x, yAxis: y, additionalAxes: [], series: [series])
     }

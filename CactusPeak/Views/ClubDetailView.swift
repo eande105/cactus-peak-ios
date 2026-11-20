@@ -8,7 +8,7 @@ struct ClubDetailView: View {
     @Environment(\.dynamicTypeSize) private var dts
     let clubID: ClubID
     @State private var dayIdx = 0
-    @State private var confirmHome = false
+    @State private var pendingHome: ClubID?
 
     var body: some View {
         let club = model.club(clubID)
@@ -48,19 +48,27 @@ struct ClubDetailView: View {
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 12) {
                 Button("Directions") { openMaps(club) }.secondaryAction(full: true)
-                Button("Book here") { router.viewingClubID = club.id; router.segment = .classes; router.selection = .book; router.paths[.book] = [] }.primaryAction(full: true)
+                Button("Book here") { showBook(club.id, .classes) }.primaryAction(full: true)
             }
                 VStack(spacing: 8) {
                 Button("Directions") { openMaps(club) }.secondaryAction(full: true)
-                Button("Book here") { router.viewingClubID = club.id; router.segment = .classes; router.selection = .book; router.paths[.book] = [] }.primaryAction(full: true)
+                Button("Book here") { showBook(club.id, .classes) }.primaryAction(full: true)
             }
             }
             .padding(.horizontal, 16).padding(.vertical, 6)
         }
-        .confirmationDialog("Set \(club.fullName) as your home club?", isPresented: $confirmHome, titleVisibility: .visible) {
-            Button("Set as home club") { model.setHomeClub(club.id) }
-            Button("Cancel", role: .cancel) {}
-        } message: { if model.member.plan == .trailhead { Text("You can change your home club once per billing cycle.") } }
+        .homeClubConfirmation($pendingHome)
+    }
+
+    /// Sets the current club and the Book segment, then goes to the Book tab.
+    private func showBook(_ id: ClubID, _ segment: BookSegment, day: Date? = nil) {
+        model.currentClubID = id
+        router.segment = segment
+        let c = model.club(id)
+        if c.courts(for: router.sport) == 0, let sp = c.courtSports.first { router.sport = sp }
+        if let day { router.day = day }
+        router.selection = .book
+        router.paths[.book] = []
     }
 
     private func openMaps(_ c: Club) {
@@ -79,9 +87,15 @@ struct ClubDetailView: View {
     private func liveNow(_ c: Club, _ r: BusynessReading) -> some View {
         let day = model.now.startOfAZDay.addingDays(dayIdx)
         return VStack(alignment: .leading, spacing: 12) {
-            Text("Live now").sectionHeader()
+            Text("Crowd level").sectionHeader()
             VStack(alignment: .leading, spacing: 12) {
                 BusynessMeter(reading: r, variant: .card, now: model.now)
+                let areas = model.areas(c)
+                if !areas.isEmpty {
+                    Divider()
+                    ForEach(areas) { AreaCrowdRow(area: $0) }
+                    Divider()
+                }
                 if r.closed == false && !r.stale && r.level != r.usual {
                     Text(r.level > r.usual ? "Busier than usual for this hour." : "Quieter than usual for this hour.").font(.footnote).foregroundStyle(Color.textMuted)
                 }
@@ -159,7 +173,7 @@ struct ClubDetailView: View {
                         .padding(.horizontal, 16)
                 }.scrollIndicators(.hidden).padding(.horizontal, -16)
             }
-            Button("See full schedule") { router.viewingClubID = c.id; router.segment = .classes; router.day = model.now.startOfAZDay; router.selection = .book; router.paths[.book] = [] }.linkAction()
+            Button("See full schedule") { showBook(c.id, .classes, day: model.now.startOfAZDay) }.linkAction()
         }
     }
 
@@ -174,7 +188,7 @@ struct ClubDetailView: View {
                 Text("Reserve").sectionHeader()
                 VStack(spacing: 0) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
-                        Button { router.push(.reserve(r.3, c.id)) } label: {
+                        Button { showBook(c.id, r.3.segment) } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: r.2).frame(width: 28).foregroundStyle(Color.textPrimary).accessibilityHidden(true)
                                 VStack(alignment: .leading) { Text(r.0).font(.headline); Text(r.1).font(.footnote).foregroundStyle(Color.textMuted) }
@@ -219,7 +233,7 @@ struct ClubDetailView: View {
     private func homeClubRow(_ c: Club) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Button {
-                if c.id != model.member.homeClubID { if model.canChangeHomeClub { confirmHome = true } else { model.showToast("Changed this cycle. Next change after \(model.nextBillDate.cpDayMonth).") } }
+                if c.id != model.member.homeClubID { if model.canChangeHomeClub { pendingHome = c.id } else { model.showToast("Changed this cycle. Next change after \(model.nextBillDate.cpDayMonth).") } }
             } label: {
                 HStack { Label("Set as home club", systemImage: c.id == model.member.homeClubID ? "checkmark.circle.fill" : "house"); Spacer() }.frame(minHeight: 48).contentShape(Rectangle())
             }.buttonStyle(.plain).disabled(model.isTeen)
@@ -233,17 +247,20 @@ struct ClubClassesView: View {
     var body: some View { ClubDetailView(clubID: clubID) }
 }
 
-struct ReserveRouteView: View {
-    @Environment(AppRouter.self) private var router
-    let kind: ReserveKind
-    let clubID: ClubID?
-    var body: some View {
-        BookView()
-            .onAppear {
-                router.segment = kind.segment
-                if let clubID { router.reserveClub[kind] = clubID }
-            }
+/// One confirmation for a home club change, used by club detail and Settings.
+struct HomeClubConfirmation: ViewModifier {
+    @Environment(AppModel.self) private var model
+    @Binding var pending: ClubID?
+    func body(content: Content) -> some View {
+        content.confirmationDialog(pending.map { "Set \(model.club($0).fullName) as your home club?" } ?? "", isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }), titleVisibility: .visible) {
+            Button("Set as home club") { if let id = pending { model.setHomeClub(id) }; pending = nil }
+            Button("Cancel", role: .cancel) { pending = nil }
+        } message: { if model.member.plan == .trailhead { Text("You can change your home club once per billing cycle.") } }
     }
+}
+
+extension View {
+    func homeClubConfirmation(_ pending: Binding<ClubID?>) -> some View { modifier(HomeClubConfirmation(pending: pending)) }
 }
 
 // MARK: - Coaches

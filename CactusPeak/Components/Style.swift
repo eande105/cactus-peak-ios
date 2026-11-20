@@ -157,15 +157,15 @@ struct EmptyRibs: View {
 struct ToastView: View {
     var toast: ToastMessage
     var undo: () -> Void
-    var calendar: () -> Void = {}
+    var view: () -> Void = {}
     var body: some View {
         HStack(spacing: 12) {
             Text(toast.text).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
             if toast.undoID != nil {
                 Button("Undo", action: undo).font(.subheadline.weight(.bold)).foregroundStyle(Color.linkText).frame(minHeight: 44)
             }
-            if toast.calendarID != nil {
-                Button("Add to calendar", action: calendar).font(.subheadline.weight(.bold)).foregroundStyle(Color.linkText).frame(minHeight: 44)
+            if toast.viewID != nil {
+                Button("View", action: view).font(.subheadline.weight(.bold)).foregroundStyle(Color.linkText).frame(minHeight: 44)
             }
         }
         .padding(.horizontal, 16).padding(.vertical, 4)

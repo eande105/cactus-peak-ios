@@ -35,6 +35,16 @@ enum CatalogMapper {
         rows.sorted { $0.sort < $1.sort }.map(club)
     }
 
+    /// Areas grouped by club, in the database order (`sort`). A row with an unknown area kind is skipped.
+    static func areas(_ rows: [ClubAreaRow]) -> [ClubID: [ClubArea]] {
+        let list: [ClubArea] = rows.sorted { $0.sort < $1.sort }.compactMap { r in
+            guard let kind = ClubAreaKind(rawValue: r.area) else { return nil }
+            return ClubArea(clubID: r.clubSlug, area: kind, label: r.label, sort: r.sort,
+                            typicalWeekday: r.typicalWeekday, typicalWeekend: r.typicalWeekend)
+        }
+        return Dictionary(grouping: list, by: \.clubID)
+    }
+
     static func club(_ r: ClubRow) -> Club {
         func courts(_ sport: String) -> Int { r.courts.first { $0.sport == sport }?.count ?? 0 }
         let caption = r.photoCaption.flatMap { $0.isEmpty ? nil : $0 } ?? "\(r.shortName) — the main floor"

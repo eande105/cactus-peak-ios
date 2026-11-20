@@ -11,7 +11,6 @@ enum AppRoute: Hashable, Codable {
     case club(ClubID)
     case coach(CoachID)
     case coachList(ClubID?)
-    case reserve(ReserveKind, ClubID?)
     case membership
     case plans
     case freeze
@@ -26,10 +25,8 @@ enum AppRoute: Hashable, Codable {
 }
 
 enum SwitcherMode: Hashable {
-    case viewing          // Today and Book: which club to look at
-    case pass             // which club the pass checks in at
-    case filter           // multi-select for the schedule
-    case reserve(ReserveKind)
+    case viewing          // Today, Book and Clubs: the current club
+    case pass             // the pass sheet's club choice. It sets the same current club.
 }
 
 struct CancelRequest: Hashable { var bookingID: BookingID }
@@ -81,10 +78,9 @@ enum AppSheet: Identifiable, Hashable {
 }
 
 enum AppTab: String, Hashable, Codable, CaseIterable { case today, book, clubs, you, search }
-enum BookSegment: String, CaseIterable, Identifiable, Hashable { case classes = "Classes", courts = "Courts", lanes = "Lanes", kids = "Kids club"; var id: String { rawValue } }
+enum BookSegment: String, CaseIterable, Identifiable, Hashable { case classes = "Classes", courts = "Courts", lanes = "Lap lanes", kids = "Kids club"; var id: String { rawValue } }
 
 struct ScheduleFilters: Equatable {
-    var clubs: Set<ClubID> = []
     var categories: Set<ClassCategory> = []
     var times: Set<TimeOfDay> = []
     var maxIntensity = 5
@@ -93,7 +89,7 @@ struct ScheduleFilters: Equatable {
     var spotsOnly = false
     var myBookings = false
     var activeCount: Int {
-        (clubs.isEmpty ? 0 : 1) + (categories.isEmpty ? 0 : 1) + (times.isEmpty ? 0 : 1) + (maxIntensity < 5 ? 1 : 0)
+        (categories.isEmpty ? 0 : 1) + (times.isEmpty ? 0 : 1) + (maxIntensity < 5 ? 1 : 0)
         + (coachID == nil ? 0 : 1) + (firstTimers ? 1 : 0) + (spotsOnly ? 1 : 0) + (myBookings ? 1 : 0)
     }
 }
@@ -131,8 +127,6 @@ final class AppRouter {
     var segment: BookSegment = .classes
     var day: Date = AZ.date(2026, 10, 27)
     var filters = ScheduleFilters()
-    var viewingClubID: ClubID = "val-vista-warner"
-    var reserveClub: [ReserveKind: ClubID] = [.court: "power-mckellips", .lane: "dobson-southern", .kidsClub: "val-vista-warner"]
     var sport: CourtSport = .pickleball
     var duration = 90
     var confirmHoldFor: SessionID?     // deep link ?action=confirm
@@ -191,7 +185,7 @@ final class AppRouter {
                 default: segment = .classes
                 }
                 if let slug = q.first(where: { $0.name == "club" })?.value, let c = m.clubs.first(where: { $0.slug == slug }) {
-                    if let k = ReserveKind(from: segment) { reserveClub[k] = c.id }
+                    m.currentClubID = c.id
                 }
             }
         case "clubs":

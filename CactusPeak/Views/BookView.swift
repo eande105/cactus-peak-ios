@@ -17,7 +17,6 @@ struct BookView: View {
         // At accessibility sizes the header scrolls with the list (see BookHeaderSection). Otherwise it is pinned.
         .safeAreaInset(edge: .top, spacing: 0) { if !dts.isAccessibilitySize { BookHeader() } }
         .navigationTitle("Book")
-        .navigationSubtitle(router.segment == .classes ? model.club(router.viewingClubID).fullName : model.club(router.reserveClub[ReserveKind(from: router.segment) ?? .court] ?? model.member.homeClubID).fullName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if router.segment == .classes {
@@ -31,7 +30,7 @@ struct BookView: View {
                 ToolbarSpacer(.fixed, placement: .topBarTrailing)
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { router.push(.myBookings, on: .book) } label: { Label("My bookings", systemImage: "ticket") }.labelStyle(.iconOnly)
+                NavigationLink(value: AppRoute.myBookings) { Label("Bookings", systemImage: "ticket") }.labelStyle(.iconOnly)
             }
         }
     }
@@ -46,6 +45,7 @@ struct BookHeader: View {
     var body: some View {
         @Bindable var router = router
         VStack(spacing: 6) {
+            HStack { ClubPill(); Spacer(minLength: 0) }.padding(.horizontal, dts.isAccessibilitySize ? 0 : 16)
             if dts.isAccessibilitySize {
                 Picker("Type", selection: $router.segment) { ForEach(BookSegment.allCases) { Text($0.rawValue).tag($0) } }.pickerStyle(.menu)
                 Picker("Day", selection: $router.day) {
@@ -70,8 +70,7 @@ struct BookHeader: View {
     }
     private func dayCount(_ d: Date) -> Int? {
         guard router.segment == .classes, router.filters.activeCount > 0 else { return nil }
-        let ids = router.filters.clubs.isEmpty ? [router.viewingClubID] : Array(router.filters.clubs)
-        return ids.reduce(0) { $0 + model.sessions(club: $1, day: d).count }
+        return model.sessions(club: model.currentClubID, day: d).count
     }
     private func dayDimmed(_ d: Date) -> Bool {
         let kind: ReserveKind = router.segment == .courts ? .court : .kidsClub
@@ -95,7 +94,7 @@ struct ClassesList: View {
     @State private var loading = true
     @Environment(\.colorScheme) private var scheme
 
-    private var clubIDs: [ClubID] { router.filters.clubs.isEmpty ? [router.viewingClubID] : Array(router.filters.clubs).sorted() }
+    private var clubIDs: [ClubID] { [model.currentClubID] }
 
     private var sessions: [ClassSession] {
         let f = router.filters
@@ -188,7 +187,7 @@ struct ReserveList: View {
     @Environment(\.dynamicTypeSize) private var dts
     let kind: ReserveKind
 
-    private var club: Club { model.club(router.reserveClub[kind] ?? model.homeClub.id) }
+    private var club: Club { model.club(model.currentClubID) }
     private var plan: PlanTier { model.member.plan }
 
     var body: some View {
@@ -223,38 +222,17 @@ struct ReserveList: View {
     }
 
     // MARK: Controls
-    private var clubMenu: some View {
-        let clubs = model.clubsFor(kind)
-        return Menu {
-            Picker("Club", selection: Binding(get: { club.id }, set: { newID in router.reserveClub[kind] = newID
-                if kind == .court, let c = model.clubs.first(where: { $0.id == newID }), c.courts(for: router.sport) == 0, let sp = c.courtSports.first { router.sport = sp } })) {
-                ForEach(clubs) { Text($0.fullName).tag($0.id) }
-            }
-        } label: { Label(club.shortName, systemImage: "mappin.and.ellipse").lineLimit(2).fixedSize(horizontal: false, vertical: true) }
-            .buttonStyle(.bordered).buttonBorderShape(dts.isAccessibilitySize ? .roundedRectangle(radius: 12) : .capsule).tint(Color.brandSecondary)
-            .accessibilityLabel("Club: \(club.fullName)")
-    }
-
     @ViewBuilder private var controlRow: some View {
         @Bindable var router = router
         let sports = club.courtSports
         let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))
         layout {
-            clubMenu
             if kind == .court {
                 if sports.count > 1 { Picker("Sport", selection: $router.sport) { ForEach(sports) { Text($0.title).tag($0) } }.pickerStyle(.segmented) }
                 else if let only = sports.first { Label(only.title, systemImage: "figure.pickleball").font(.subheadline.weight(.semibold)) }
             }
-            if kind == .lane { BusynessMeter(reading: model.busyness(club), variant: .inline, now: model.now) }
         }
         if kind == .court { DurationChips(options: [60, 90], selected: $router.duration) }
-    }
-
-    private var laneStatus: some View {
-        HStack(spacing: 12) {
-            Label(club.hasPool ? "\(club.lanes) lanes" : "No pool", systemImage: "figure.pool.swim").font(.subheadline.weight(.medium))
-            BusynessMeter(reading: model.busyness(club), variant: .inline, now: model.now)
-        }
     }
 
     private var rule: String {
