@@ -4,7 +4,12 @@ struct ClassDetailView: View {
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
     @Environment(\.dynamicTypeSize) private var dts
+    /// The pass zooms out of the button that opens it.
+    @Environment(\.zoomNamespace) private var zoomNamespace
     let sessionID: SessionID
+    @State private var titleHidden = false
+    /// True once the intro's booking control has scrolled under the bar.
+    @State private var bookingHidden = false
 
     var body: some View {
         if let s = model.session(sessionID) {
@@ -19,60 +24,76 @@ struct ClassDetailView: View {
         let club = model.club(s.clubID)
         let st = model.state(for: s)
         let left = model.spotsLeft(s)
-        let rules = model.rulesText(for: s)
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                hero(s, coach, club)
-                VStack(alignment: .leading, spacing: 20) {
-                    stateLine(s, st)
-                    titleBlock(s, club)
-                    NavigationLink(value: AppRoute.coach(coach.id)) {
-                        HStack { InstructorChip(coach: coach, large: true, showCredential: true); Spacer(); Image(systemName: "chevron.right").foregroundStyle(Color.textMuted) }
-                            .contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                    stats(s, left)
-                    Divider()
-                    about(s)
-                    secondaryActions(s)
-                    DisclosureGroup("Cancellation and waitlist") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(rules.cancel); Text(rules.waitlist)
-                            if let x = rules.strikes { Label(x, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Color.statusWarning) }
-                            if case .restricted(let rr) = st { Label("\(rr.label). \(rr.note)", systemImage: "lock.fill").fontWeight(.semibold) }
-                        }.font(.subheadline).padding(.top, 6)
-                    }
-                    .font(.headline)
-                    alsoThisWeek(s)
-                }
-                .padding(.horizontal, 16)
+        return List {
+            // A class is media, so it leads with its art, full width under the bar, as a Fitness+ workout does.
+            HeroHeaderSection(height: 300) {
+                ClassGraphic(category: s.category, variant: .wide).accessibilityHidden(true)
+            } content: {
+                intro(s, coach: coach)
+                booking(s, st)
+                actions(s, club: club)
             }
-            .padding(.bottom, 24)
-            if dts.isAccessibilitySize { bottomBar(s, st, left).padding(.horizontal, 16) }
+            stats(s, left: left, club: club)
+            if hasStateLine(st) { Section { stateLine(s, st) } }
+            details(s, club: club)
+            Section {
+                Text(s.summary)
+            } header: { DetailSectionHeader(title: "About") }
+            alsoThisWeek(s)
+            CancelPolicySection(cutoff: s.start.addingTimeInterval(-2 * 3600), waitlistUntil: s.start.addingTimeInterval(-3600),
+                                countsAsStrike: true)
         }
-        .screenBackground()
-        .scrollEdgeEffectStyle(.soft, for: .top)
+        .listStyle(.insetGrouped)
+        .listSectionSpacing(.compact)
+        .heroPage(heroVisible: !titleHidden)
+        .toolbarMinimizationBehavior(.onScrollDown, for: .navigationBar)
+        .navigationTitle(s.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(item: URL(string: "https://app.cactuspeak.example/book/class/\(s.id)")!, subject: Text(s.name),
-                          message: Text("\(s.name), \(s.start.cpLongDay) \(s.start.cpTime), \(club.fullName)")) { Image(systemName: "square.and.arrow.up") }
+            ToolbarItem(placement: .principal) {
+                DetailBarTitle(title: s.name, shown: titleHidden)
             }
-            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            // When the intro scrolls away, its booking control follows the name into the bar, in compact form.
+            // A booked class puts the pass there instead: cancel is not an action to keep one tap away.
+            if bookingHidden {
+                if case .booked = st {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        DetailBarPassButton(sourceID: "class.pass.bar")
+                    }
+                    .zoomSource("class.pass.bar", in: zoomNamespace)
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                } else if let title = barTitle(st) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        DetailBarButton(title: title) { ClassActions.primary(s, model: model, router: router) }
+                    }
+                    ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { model.toggleFavourite(session: s.id) } label: { Image(systemName: model.favouriteSessions.contains(s.id) ? "heart.fill" : "heart") }
+                    .barItem()
                     .accessibilityLabel(model.favouriteSessions.contains(s.id) ? "Remove favourite" : "Favourite")
                     .sensoryFeedback(.selection, trigger: model.favouriteSessions)
             }
         }
-        .safeAreaBar(edge: .bottom) { if !dts.isAccessibilitySize { bottomBar(s, st, left).padding(.horizontal, 16).padding(.vertical, 6) } }
     }
 
-    // MARK: Hero: the class graphic for the category (same art as the web app and the marketing site)
-    private func hero(_ s: ClassSession, _ coach: Coach, _ club: Club) -> some View {
-        ClassGraphic(category: s.category)
-            .frame(height: dts.isAccessibilitySize ? 160 : 240)
-            .backgroundExtensionEffect()
+    /// The bar shows only actions the member can take now. Other states stay in the intro.
+    private func barTitle(_ st: BookingState) -> String? {
+        switch st {
+        case .book, .dropIn: "Book"
+        case .waitlist: "Waitlist"
+        case .hold: "Confirm"
+        default: nil
+        }
+    }
+
+    private func hasStateLine(_ st: BookingState) -> Bool {
+        switch st {
+        case .waitlisted, .hold, .started, .dropIn, .restricted: true
+        default: false
+        }
     }
 
     @ViewBuilder private func stateLine(_ s: ClassSession, _ st: BookingState) -> some View {
@@ -84,123 +105,172 @@ struct ClassDetailView: View {
                 Label("A spot opened. Confirm in \(String(format: "%d:%02d", secs / 60, secs % 60)).", systemImage: "bell.badge.fill").font(.subheadline.weight(.semibold)).foregroundStyle(Color.statusWarning)
             }
         case .started: Label(model.now > s.end ? "This class has ended." : "This class has started.", systemImage: "info.circle").font(.subheadline)
+        case .restricted(let rr): Label("\(rr.label). \(rr.note)", systemImage: "lock.fill").font(.subheadline.weight(.semibold))
         case .dropIn(let n): Label("Drop-in · \(n) spot\(n == 1 ? "" : "s") left. Waitlist is closed.", systemImage: "info.circle").font(.subheadline)
         default: EmptyView()
         }
     }
 
-    private func titleBlock(_ s: ClassSession, _ club: Club) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
-                CategoryBadge(category: s.category)
-                if s.minAge >= 18 { Text("Ages 18+").font(.caption.weight(.semibold)) }
-                else if s.teenOK { Text("Teen OK").font(.caption.weight(.semibold)) }
-                if s.firstTimers { Label("First-timers welcome", systemImage: "leaf.fill").font(.caption.weight(.semibold)).foregroundStyle(Color.statusSuccess) }
-            }
-            Text(s.name).font(.archivoExtraBold(28, relativeTo: .title)).fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
-            Text("\(s.start.cpFormat("EEE, MMM d")) · \(s.start.cpTime)–\(s.end.cpTime)").font(.archivoSemiBold(17, relativeTo: .headline)).monospacedDigit()
-            NavigationLink(value: AppRoute.club(club.id)) {
-                HStack(spacing: 4) { Text("\(s.room) · \(club.fullName)"); Image(systemName: "chevron.right").imageScale(.small) }
-                    .font(.subheadline).foregroundStyle(Color.linkText).frame(minHeight: 44, alignment: .leading)
-            }
+    /// The name, the date and time, the coach, then the tags, aligned to the leading edge under the art.
+    private func intro(_ s: ClassSession, coach: Coach) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(s.name)
+                .brandFont(.title)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .onScrollVisibilityChange(threshold: 0.2) { titleHidden = !$0 }
+            Text("\(s.start.cpFormat("EEEE, MMM d")) · \(s.start.cpTimeShort)–\(s.end.cpTimeShort)")
+                .font(.subheadline.weight(.semibold)).foregroundStyle(.secondary).monospacedDigit()
+            DetailCoachLine(coach: coach, category: s.category)
+            FlowLayout(spacing: 6) { tagItems(s) }
         }
+        // An explicit colour for the text: inside a header, the hierarchical `.primary` resolves to secondary.
+        .foregroundStyle(Color.primary)
     }
 
-    private func stats(_ s: ClassSession, _ left: Int) -> some View {
-        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14)) : AnyLayout(HStackLayout(alignment: .top, spacing: 24))
-        return layout {
-            VStack(alignment: .leading, spacing: 6) {
-                FactLabel(label: "Intensity")
-                HStack(spacing: 6) { RibMeter(value: s.intensity, tone: .category(s.category), size: .md, peak: false); Text(Intensity.word(s.intensity)).font(.subheadline.weight(.semibold)) }
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                FactLabel(label: "Spots")
-                if left == 0 { Text("Full").font(.archivoBold(22, relativeTo: .title2)).foregroundStyle(Color.textMuted) }
-                else { CapacityIndicator(left: left, capacity: s.capacity, noun: s.spotNoun, large: true) }
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Intensity \(s.intensity) of 5, \(Intensity.word(s.intensity)). Spots: \(left) \(s.spotNoun) left of \(s.capacity).")
+    /// The category badge and the age and first-timer tags.
+    @ViewBuilder private func tagItems(_ s: ClassSession) -> some View {
+        CategoryBadge(category: s.category)
+        if s.minAge >= 18 { DetailTag(text: "Ages 18+") }
+        else if s.teenOK { DetailTag(text: "Teen OK") }
+        if s.firstTimers { DetailTag(text: "First-timers welcome", symbol: "leaf.fill", tint: .statusSuccess) }
     }
 
-    private func secondaryActions(_ s: ClassSession) -> some View {
-        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
-        return layout {
-            if let b = model.booking(forSession: s.id), b.status == .booked {
-                Button { router.present(.calendar(b.id)) } label: { Label("Add to calendar", systemImage: "calendar.badge.plus").lineLimit(1) }.secondaryAction(full: true)
+    /// Calendar (when booked), invite (when the member has guest passes) and share, as equal buttons.
+    private func actions(_ s: ClassSession, club: Club) -> some View {
+        let current = model.booking(forSession: s.id)
+        let booked: Booking? = current?.status == .booked ? current : nil
+        return DetailActionRow {
+            if let b = booked {
+                Button { router.present(.calendar(b.id)) } label: { DetailActionLabel(title: "Calendar", symbol: "calendar.badge.plus") }
+                    .accessibilityLabel("Add to calendar")
             }
             if model.guestPassesLeft > 0 {
-                Button { router.present(.invite(s.id)) } label: { Label("Invite a friend", systemImage: "person.badge.plus").lineLimit(1) }.secondaryAction(full: true)
+                Button { router.present(.invite(s.id)) } label: { DetailActionLabel(title: "Invite", symbol: "person.badge.plus") }
+                    .accessibilityLabel("Invite a friend")
+            }
+            ShareLink(item: URL(string: "https://app.cactuspeak.example/book/class/\(s.id)")!, subject: Text(s.name),
+                      message: Text("\(s.name), \(s.start.cpLongDay) \(s.start.cpTimeShort), \(club.fullName)")) {
+                DetailActionLabel(title: "Share", symbol: "square.and.arrow.up")
             }
         }
     }
 
-    private func about(_ s: ClassSession) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("About").sectionHeader()
-            Text(s.summary).font(.body)
-            if !s.bring.isEmpty {
-                Text("Bring: " + s.bring.joined(separator: ", ")).font(.subheadline).foregroundStyle(Color.textMuted)
+    /// The four numbers people check first, side by side as in the App Store: how hard, how long, how many spots, and
+    /// how busy the club usually is then.
+    private func stats(_ s: ClassSession, left: Int, club: Club) -> some View {
+        let crowd = club.typicalLevel(at: s.start)
+        return Section {
+            DetailStatStrip {
+                DetailStat(label: "Intensity", detail: Intensity.word(s.intensity)) {
+                    RibMeter(value: s.intensity, tone: .category(s.category), size: .md, peak: false)
+                }
+                DetailStat(label: "Length", number: "\(s.durationMin)", detail: "min")
+                DetailStat(label: "Spots", number: left == 0 ? "0" : "\(left)",
+                           detail: left == 0 ? "Full" : "of \(s.capacity) left")
+                DetailStat(label: "Crowd", detail: BusynessReading.word(crowd),
+                           accessibilityText: "Crowd, usually \(BusynessReading.word(crowd).lowercased()) at this time") {
+                    RibMeter(value: crowd, tone: .crowd(crowd), size: .md, peak: false)
+                }
             }
+            .padding(.vertical, 6)
         }
     }
 
+    /// Where it is and what to bring, then the club.
+    private func details(_ s: ClassSession, club: Club) -> some View {
+        Section {
+            DetailFactRow(symbol: "door.left.hand.open", text: s.room)
+            if !s.bring.isEmpty { DetailFactRow(symbol: "bag", text: s.bring.joined(separator: ", ")) }
+            NavigationLink(value: AppRoute.club(club.id)) {
+                DetailFactRow(symbol: "mappin.and.ellipse", text: club.fullName, secondary: "\(club.city), AZ")
+            }
+        } header: {
+            DetailSectionHeader(title: "Details")
+        }
+    }
+
+    /// The same class on other days this week, as Calendar lists events: a date leaf, the time and coach, and the
+    /// spots left. Every row is the same class, so the rows show no class art.
     @ViewBuilder private func alsoThisWeek(_ s: ClassSession) -> some View {
         let more = model.sessions.filter { $0.name == s.name && $0.clubID == s.clubID && $0.id != s.id && $0.start > model.now && $0.start < model.now.addingDays(8) && model.visible($0) }.prefix(3)
         if !more.isEmpty {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("Also this week").sectionHeader().padding(.bottom, 4)
+            Section {
                 ForEach(Array(more)) { m in
+                    let left = model.spotsLeft(m)
                     NavigationLink(value: AppRoute.classSession(m.id)) {
-                        HStack {
-                            Text("\(m.start.cpFormat("EEE")) \(m.start.cpTime)").font(.subheadline.weight(.semibold)).monospacedDigit()
-                            Spacer()
-                            Text(model.spotsLeft(m) == 0 ? "Full" : "\(model.spotsLeft(m)) \(m.spotNoun) left").font(.subheadline).foregroundStyle(Color.textMuted)
-                            Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Color.textMuted)
-                        }.frame(minHeight: 44).contentShape(Rectangle())
-                    }.buttonStyle(.plain)
-                    Divider()
+                        HStack(spacing: 12) {
+                            DateBadge(date: m.start)
+                            VStack(alignment: .leading, spacing: 2) {
+                                // The badge names the day, so the row leads with the time.
+                                Text(m.start.cpTimeShort).font(.headline).monospacedDigit()
+                                Text(model.coach(m.coachID).shortName).font(.subheadline).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 8)
+                            RowPill(text: left == 0 ? "Full" : "\(left) left")
+                        }
+                        .frame(minHeight: 52)
+                        .accessibilityElement(children: .combine)
+                    }
+                    .navigationLinkIndicatorVisibility(.hidden)
                 }
+            } header: {
+                DetailSectionHeader(title: "Also this week", detail: "\(more.count) more")
             }
         }
     }
 
-    // MARK: Action bar (safeAreaBar): plan line, free-cancel line, one button
-    private func bottomBar(_ s: ClassSession, _ st: BookingState, _ left: Int) -> some View {
+    // MARK: Booking (in the intro)
+    /// One full-width control. Book carries the plan as its second line; a booked class leads with Cancel, which
+    /// carries the time left to cancel free, and puts the pass in a circle button beside it. Other states keep the
+    /// plan and cancel line under the control.
+    private func booking(_ s: ClassSession, _ st: BookingState) -> some View {
         let b = model.booking(forSession: s.id)
-        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.member.plan == .trailhead && s.clubID != model.member.homeClubID ? "Ridge only" : "Included with \(model.member.plan.name)").font(.subheadline.weight(.semibold))
-                Text(cancelLine(s, st)).font(.footnote).foregroundStyle(Color.textMuted)
-            }
-            if !dts.isAccessibilitySize { Spacer(minLength: 0) }
-            switch st {
-            case .booked:
-                HStack(spacing: 8) {
-                    Button {} label: { Label("Booked", systemImage: "checkmark").foregroundStyle(Color.statusSuccess).lineLimit(1).fixedSize() }
-                        .buttonStyle(.glass).controlSize(.large).disabled(true)
-                    Menu {
-                        if let b { Button { router.present(.calendar(b.id)) } label: { Label("Add to calendar", systemImage: "calendar.badge.plus") } }
-                        Button("Cancel booking", role: .destructive) { if let b { router.requestCancel(b.id) } }
-                    } label: { Label("Manage booking", systemImage: "ellipsis").labelStyle(.iconOnly) }
-                        .buttonStyle(.glass).controlSize(.large)
+        let plan = model.member.plan == .trailhead && s.clubID != model.member.homeClubID ? "Ridge only" : "Included with \(model.member.plan.name)"
+        let ax = dts.isAccessibilitySize
+        return VStack(alignment: ax ? .leading : .center, spacing: 8) {
+            Group {
+                switch st {
+                case .book, .dropIn:
+                    DetailPrimaryButton(title: "Book", subtitle: plan) { ClassActions.primary(s, model: model, router: router) }
+                case .booked:
+                    BookedActionRow(cancelCutoff: s.start.addingTimeInterval(-7200), passSourceID: "class.pass") {
+                        if let b { router.requestCancel(b.id) }
+                    }
+                case .started where model.now > s.end:
+                    if let b, b.status == .attended {
+                        DetailPrimaryButton(title: "Give feedback") { router.present(.feedback(b.id)) }
+                    } else { BookingStateButton(state: st, size: .large, action: {}) }
+                default:
+                    BookingStateButton(state: st, size: .large, action: { ClassActions.primary(s, model: model, router: router) },
+                                       onLeave: { if let b { model.leaveWaitlist(b.id) } }, onRelease: { if let b { model.releaseHold(b.id) } })
                 }
-            case .started where model.now > s.end:
-                if let b, b.status == .attended { Button("Give feedback") { router.present(.feedback(b.id)) }.primaryAction() }
-                else { BookingStateButton(state: st, size: .large, action: {}) }
-            default:
-                BookingStateButton(state: st, size: .large, action: { ClassActions.primary(s, model: model, router: router) },
-                                   onLeave: { if let b { model.leaveWaitlist(b.id) } }, onRelease: { if let b { model.releaseHold(b.id) } })
-                    .frame(maxWidth: dts.isAccessibilitySize ? .infinity : 220)
             }
+            .frame(maxWidth: .infinity)
+            if showsPlanLine(st) {
+                Text("\(plan) · \(cancelLine(s, st))")
+                    .font(.footnote).foregroundStyle(Color.secondary)
+                    .multilineTextAlignment(ax ? .leading : .center)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: ax ? .leading : .center)
+        .reportsHidden($bookingHidden)
+    }
+
+    /// Book and booked carry their line inside the button.
+    private func showsPlanLine(_ st: BookingState) -> Bool {
+        switch st {
+        case .book, .dropIn, .booked: false
+        default: true
         }
     }
 
     private func cancelLine(_ s: ClassSession, _ st: BookingState) -> String {
         let left = model.spotsLeft(s)
-        let free = "Free cancel until \(s.start.addingTimeInterval(-7200).cpTime)"
-        if left == 0, case .booked = st {} else if left == 0 { return "Full · Waitlist \(model.waitlistCount(s))" }
+        let free = "Free cancel until \(s.start.addingTimeInterval(-7200).cpTimeShort)"
+        if left == 0 { return "Full · Waitlist \(model.waitlistCount(s))" }
         return free
     }
 }
+
+

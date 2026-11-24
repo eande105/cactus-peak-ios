@@ -24,13 +24,13 @@ struct ClubHero: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             ClubSet(slug: club.slug, size: 32).padding(.bottom, 6)
-            Text(club.fullName).font(.archivoExtraBold(30, relativeTo: .largeTitle)).foregroundStyle(Color.textPrimary)
+            Text(club.fullName).brandFont(.display).foregroundStyle(Color.primary)
                 .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
             // The name is the cross streets, so the city has its own line.
-            Text("\(club.city), AZ").font(.subheadline.weight(.semibold)).foregroundStyle(Color.textMuted)
-            Text(club.factLine).font(.subheadline).foregroundStyle(Color.textMuted).fixedSize(horizontal: false, vertical: true)
+            Text("\(club.city), AZ").font(.subheadline.weight(.semibold)).foregroundStyle(Color.secondary)
+            Text(club.factLine).font(.subheadline).foregroundStyle(Color.secondary).fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 4)
+        .padding(.horizontal).padding(.top, 8).padding(.bottom, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .combine)
     }
@@ -45,12 +45,11 @@ struct Avatar: View {
     var body: some View {
         let s = size * min(scale, 1.6)
         ZStack {
-            Circle().fill((category?.color ?? Color.brandSecondary).opacity(0.16))
-            Text(initials).font(.system(size: s * 0.38, weight: .semibold, design: .default))
-                .foregroundStyle(category?.textColor ?? Color.textPrimary)
+            Circle().fill((category?.color ?? Color.secondary).opacity(0.16))
+            Text(initials).monogramFont(diameter: s)
+                .foregroundStyle(category?.textColor ?? Color.primary)
         }
         .frame(width: s, height: s)
-        .overlay(Circle().strokeBorder(Color.hairline, lineWidth: 1))
         .accessibilityHidden(true)
     }
 }

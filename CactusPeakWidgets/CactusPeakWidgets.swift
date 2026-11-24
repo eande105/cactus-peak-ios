@@ -68,7 +68,7 @@ struct WidgetBG: View {
 
 struct Eyebrow: View {
     var text: String
-    var body: some View { Text(text.uppercased()).font(.archivoSemiBold(10, relativeTo: .caption2)).tracking(1.6).foregroundStyle(.secondary) }
+    var body: some View { Text(text).brandFont(.eyebrow).foregroundStyle(.secondary) }
 }
 
 struct WidgetRibs: View {
@@ -126,7 +126,7 @@ struct NextClassView: View {
                 }.foregroundStyle(n.category.textColor)
                 let (t, ap) = n.start.cpClock
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(t).font(.archivoExtraBold(30, relativeTo: .title)).monospacedDigit().widgetAccentable()
+                    Text(t).brandFont(.numeral(.large)).widgetAccentable()
                     Text(ap).font(.caption.weight(.semibold))
                 }
                 Text(n.name).font(.headline).lineLimit(2)
@@ -172,7 +172,7 @@ struct ClubNowView: View {
                         Eyebrow(text: "Club now")
                         Text(c.name).font(.headline).lineLimit(2)
                         if c.level > 0 { WidgetRibs(value: c.level, tone: c.tone, size: .lg) }
-                        Text(c.level > 0 ? c.word : "Closed").font(.archivoExtraBold(22, relativeTo: .title2))
+                        Text(c.level > 0 ? c.word : "Closed").brandFont(.numeral(.medium))
                     }
                     VStack(alignment: .leading, spacing: 6) {
                         Spacer(minLength: 0)
@@ -213,7 +213,7 @@ struct NextAndPassWidget: Widget {
                 NextClassView(snap: e.snap)
                 Link(destination: link("pass")) {
                     VStack(spacing: 8) {
-                        Image(systemName: "qrcode").font(.system(size: 34)).foregroundStyle(Color.nightOnSurface)
+                        Image(systemName: "qrcode").symbolFont(.system(size: 34)).foregroundStyle(Color.nightOnSurface)
                         Text("Show pass").font(.subheadline.weight(.semibold)).foregroundStyle(Color.nightOnSurface)
                     }
                     .frame(width: 96).frame(maxHeight: .infinity)
@@ -309,7 +309,7 @@ struct KidsClubWidget: Widget {
                 }.foregroundStyle(ClassCategory.youth.textColor)
                 if let k = e.snap.kids {
                     Text(k.names).font(.headline)
-                    Text("\(k.start.cpFormat("EEE")) \(k.start.cpTimeShort)").font(.archivoBold(22, relativeTo: .title3)).widgetAccentable()
+                    Text("\(k.start.cpFormat("EEE")) \(k.start.cpTimeShort)").brandFont(.numeral(.medium)).widgetAccentable()
                     Spacer(minLength: 0)
                     Text("Check in by \(k.checkInBy.cpTime)").font(.caption.weight(.medium))
                 } else { Text("No block booked.").font(.headline); Spacer() }
@@ -331,7 +331,7 @@ struct PassLockWidget: Widget {
         StaticConfiguration(kind: "PassLock", provider: SnapshotProvider()) { _ in
             ZStack {
                 AccessoryWidgetBackground()
-                Image(systemName: "qrcode").font(.title2).widgetAccentable()
+                Image(systemName: "qrcode").symbolFont(.title2).widgetAccentable()
             }
             .widgetURL(link("pass"))
             .containerBackground(.clear, for: .widget)
@@ -416,11 +416,11 @@ struct LockScreenActivity: View {
             HStack(alignment: .center) {
                 ClassGraphic(category: attrs.category, variant: .square).frame(width: 32, height: 32).clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .environment(\.colorScheme, .dark)
-                Text(attrs.className).font(.archivoSemiBold(20, relativeTo: .title3)).foregroundStyle(Color.nightOnSurface).lineLimit(1)
+                Text(attrs.className).brandFont(.section).foregroundStyle(Color.nightOnSurface).lineLimit(1)
                 Spacer()
                 chip
             }
-            Text(state.startLabel).font(.archivoExtraBold(34, relativeTo: .largeTitle)).monospacedDigit().foregroundStyle(Color.nightOnSurface)
+            Text(state.startLabel).brandFont(.numeral(.large)).foregroundStyle(Color.nightOnSurface)
             HStack {
                 Text("\(attrs.clubShort) · \(attrs.room) · \(third)").font(.subheadline.weight(.medium)).foregroundStyle(Color.nightOnSurface).lineLimit(2)
                 Spacer()

@@ -51,9 +51,13 @@ enum AppSheet: Identifiable, Hashable {
     case editProfile
     case calendar(BookingID)
     case goal
+    /// A full page (Notifications, Bookings, Settings) opened from a toolbar button. It zooms out of the button
+    /// as a sheet with its own navigation stack (`pagePath`) instead of being pushed on the tab's stack.
+    case page(AppRoute)
 
     var id: String {
         switch self {
+        case .page(let r): "page-\(r)"
         case .pass: "pass"
         case .cancel(let i): "cancel-\(i)"
         case .waitlist(let i): "waitlist-\(i)"
@@ -116,9 +120,22 @@ struct ClashPrompt: Identifiable, Hashable {
 final class AppRouter {
     static let shared = AppRouter()
 
-    var selection: AppTab = .today { didSet { persist() } }
+    var selection: AppTab = .today {
+        didSet {
+            persist()
+            // A page sheet belongs to the tab that opened it, so a tab switch closes it.
+            if oldValue != selection, case .page = sheet { dismissPage() }
+        }
+    }
     var paths: [AppTab: [AppRoute]] = [:] { didSet { persist() } }
-    var sheet: AppSheet?
+    var sheet: AppSheet? { didSet { if sheet == nil { zoomSourceID = nil; pagePath = []; subSheet = nil } } }
+    /// The toolbar button the current sheet zooms out of (`matchedTransitionSource` id), or nil for the default
+    /// slide-up. Set it with `present(_:zoomFrom:)`.
+    var zoomSourceID: String?
+    /// The navigation stack inside a `.page` sheet. `push` without a tab appends here while a page is open.
+    var pagePath: [AppRoute] = []
+    /// A sheet opened from inside a `.page` sheet. It stacks on the page instead of replacing it.
+    var subSheet: AppSheet?
     var showWelcome = false
     var showOnboarding = false
     var toastMessage: String?
@@ -142,6 +159,10 @@ final class AppRouter {
         Binding(get: { self.paths[tab] ?? [] }, set: { self.paths[tab] = $0 })
     }
     func push(_ r: AppRoute, on tab: AppTab? = nil) {
+        if case .page = sheet {
+            if tab == nil { pagePath.append(r); return }
+            dismissPage()
+        }
         let t = tab ?? selection
         paths[t, default: []].append(r)
     }
@@ -150,12 +171,24 @@ final class AppRouter {
 
     /// Only one sheet shows at a time. A new request closes the current one first.
     func present(_ s: AppSheet) {
+        if case .page = sheet, s != sheet {
+            if case .page = s {} else { subSheet = s; return }
+        }
         if sheet != nil, sheet != s {
             sheet = nil
             Task { try? await Task.sleep(for: .milliseconds(450)); self.sheet = s }
         } else { sheet = s }
     }
-    func dismissSheet() { sheet = nil }
+    /// Closes the top sheet: a sheet on a page first, then the page or sheet itself.
+    func dismissSheet() { if subSheet != nil { subSheet = nil } else { sheet = nil } }
+    func dismissPage() { subSheet = nil; sheet = nil }
+
+    /// Opens a sheet that zooms out of the toolbar item marked with `.matchedTransitionSource(id: sourceID, in:)`.
+    func present(_ s: AppSheet, zoomFrom sourceID: String) {
+        zoomSourceID = sourceID
+        present(s)
+        zoomSourceID = sourceID
+    }
 
     /// A late cancel counts as a strike, so it asks with a confirmation dialog. A free cancel opens the sheet.
     func requestCancel(_ id: BookingID) {

@@ -61,8 +61,7 @@ struct SettingsView: View {
             }
             Section {
                 LabeledContent("Version", value: "1.0 (1)")
-                Text("Archivo and Inter are licensed under the SIL Open Font License 1.1.").font(.footnote).foregroundStyle(Color.textMuted)
-            } header: { Text("About") }
+            } header: { Text("About") } footer: { Text("Archivo and Inter are licensed under the SIL Open Font License 1.1.") }
             #if DEBUG
             demo
             #endif

@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Every state of the shared BookingStateButton, drawn with system button styles.
-/// Row size: `.bordered` / `.borderedProminent` capsules (regular control size, 44 pt hit area).
+/// Row size: compact App Store style, `.bordered` capsules at `.small` control size with a 44 pt hit area.
 /// Large size: `.glassProminent` for the one primary action and `.glass` for the rest.
 struct BookingStateButton: View {
     enum Size { case row, large }
@@ -25,21 +25,22 @@ struct BookingStateButton: View {
                 plain { ProgressView().accessibilityLabel("Checking your bookings") }.disabled(true)
             case .booked(let late):
                 plain {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.statusSuccess)
+                    HStack(spacing: 4) {
+                        Image(systemName: "checkmark").imageScale(.small)
                         Text("Booked")
                         if late { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.statusWarning).accessibilityLabel("Late cancel applies") }
                     }
                 }
             case .waitlist:
-                plain { Text("Join waitlist") }
+                plain { Text(large ? "Join waitlist" : "Waitlist").accessibilityLabel("Join waitlist") }
             case .waitlisted(let n):
                 Menu {
                     Button("Leave waitlist", role: .destructive) { onLeave?() }
                 } label: {
-                    HStack(spacing: 6) { Text("On waitlist #\(n)"); Image(systemName: "chevron.down").imageScale(.small) }
+                    HStack(spacing: 4) { Image(systemName: "clock").imageScale(.small); Text("Waitlist #\(n)"); Image(systemName: "chevron.down").imageScale(.small) }
+                        .font(large ? .body.weight(.semibold) : .subheadline.weight(.semibold))
                 }
-                .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Color.brandSecondary).controlSize(large ? .large : .regular)
+                .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(.secondary).controlSize(large ? .large : .small)
             case .hold(let until):
                 VStack(spacing: 4) {
                     prominent {
@@ -55,14 +56,14 @@ struct BookingStateButton: View {
             case .full(let reason):
                 VStack(alignment: .trailing, spacing: 2) {
                     plain { Text("Full") }.disabled(true)
-                    if large { Text(reason).font(.footnote).foregroundStyle(Color.textMuted) }
+                    if large { Text(reason).font(.footnote).foregroundStyle(Color.secondary) }
                 }
             case .started:
                 plain { Text("Started") }.disabled(true)
             case .restricted(let r):
                 VStack(alignment: .trailing, spacing: 2) {
                     plain { Text(r.label).multilineTextAlignment(.center) }.opacity(0.9)
-                    if large { Text(r.note).font(.footnote).foregroundStyle(Color.textMuted).multilineTextAlignment(.trailing) }
+                    if large { Text(r.note).font(.footnote).foregroundStyle(Color.secondary).multilineTextAlignment(.trailing) }
                 }
             case .error:
                 plain { Text("Try again") }.tint(Color.statusDanger)
@@ -71,14 +72,20 @@ struct BookingStateButton: View {
         .fixedSize(horizontal: size == .row && !dts.isAccessibilitySize, vertical: false)
     }
 
+    /// Row label font. The capsule stays compact like the App Store Get button; the row (64 pt minimum) is the layout
+    /// target. A 44 pt tall label would make the capsule itself 44 pt tall, so the minimum height is not forced here.
+    private func rowLabel<L: View>(_ label: L) -> some View {
+        label.font(.subheadline.weight(.semibold))
+    }
+
     @ViewBuilder private func prominent<L: View>(@ViewBuilder _ label: () -> L) -> some View {
         if large {
-            Button(action: action) { label().foregroundStyle(Color.brandOnAccent).frame(maxWidth: .infinity) }
-                .buttonStyle(.glassProminent).tint(Color.brandAccent).controlSize(.large)
+            Button(action: action) { label().frame(maxWidth: .infinity) }
+                .accentProminent().controlSize(.large)
         } else {
-            // In a list a solid copper pill on every row is too loud. Rows get a tinted fill with Link-colour text.
-            Button(action: action) { label().foregroundStyle(Color.linkText).fontWeight(.semibold) }
-                .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Color.brandAccent).controlSize(.regular)
+            // "Book" uses the app tint, like the App Store Get button.
+            Button(action: action) { rowLabel(label()) }
+                .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Color.brandAccent).controlSize(.small)
         }
     }
 
@@ -86,7 +93,8 @@ struct BookingStateButton: View {
         if large {
             Button(action: action) { label().frame(maxWidth: .infinity) }.buttonStyle(.glass).controlSize(.large)
         } else {
-            Button(action: action) { label() }.buttonStyle(.bordered).buttonBorderShape(.capsule).tint(Color.brandSecondary).controlSize(.regular)
+            Button(action: action) { rowLabel(label()) }
+                .buttonStyle(.bordered).buttonBorderShape(.capsule).tint(.secondary).controlSize(.small)
         }
     }
 }

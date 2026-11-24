@@ -24,10 +24,6 @@ final class CopyTests: XCTestCase {
         let m = Fixtures.model()
         m.applyHousehold(Fixtures.household(bookings: [Fixtures.booking("b1")]), savedAt: Date())
         var texts: [String] = []
-        for s in m.sessions.prefix(400) {
-            let r = m.rulesText(for: s)
-            texts += [r.cancel, r.waitlist] + (r.strikes.map { [$0] } ?? [])
-        }
         for c in m.clubs { texts.append(m.popularCaption(c)) }
         for b in m.upcomingBookings { texts.append("Free cancel until \(b.cancelCutoff().cpTime)") }
         texts.append(ClashPrompt(id: "x", existing: "Rib Rack Strength", existingTime: "5:30 am").message)

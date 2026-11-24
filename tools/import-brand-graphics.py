@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 """Build Shared/BrandGraphics.xcassets from the exported brand SVGs.
 
-    python3 tools/import-brand-graphics.py      (from ios/)
+    python3 tools/import-brand-graphics.py [set ...]     (from ios/; no sets means all of them)
 
 Source: ../brand-graphics/svg/<set>/<id>-<variant>-<light|dark>.svg, written by
 `node scripts/export-graphics.mjs` in the marketing site (the source of truth).
 Each pair becomes one image set with an "Any" (light) and a "Dark" appearance and
 "Preserve Vector Data" on. Image set names are "<set>-<id>[-<variant>]", for example
-"objects-kettlebell", "category-cycle-cut" or "rack-class-cycle-16x9". The script deletes and rewrites the catalog,
-so do not edit it by hand. Run `xcodegen generate` only if the catalog is new.
+"objects-kettlebell", "category-cycle-cut" or "crop-class-cycle-16x9". The script deletes and rewrites each set it
+imports, so do not edit those folders by hand. Name sets to import only those, for example `crop`, and leave the
+others as they are. Run `xcodegen generate` only if the catalog is new.
 """
 import json
 import re
 import shutil
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -21,10 +23,10 @@ DST = ROOT / "Shared" / "BrandGraphics.xcassets"
 
 # The sets the app shows. None means every file in the set.
 SETS = {
-    # Gym objects (Nucleo core glyphs, brand colours), class category tiles and the Night Racks.
+    # Gym objects (Nucleo core glyphs, brand colours), class category tiles and the class crops.
     "objects": [None],
     "category": [None],
-    "rack": [None],
+    "crop": [None],
 }
 INFO = {"author": "xcode", "version": 1}
 
@@ -43,13 +45,21 @@ def copy_svg(src: Path, dst: Path) -> None:
 
 
 def main() -> None:
-    if DST.exists():
-        shutil.rmtree(DST)
-    DST.mkdir(parents=True)
+    wanted = sys.argv[1:] or list(SETS)
+    unknown = [w for w in wanted if w not in SETS]
+    if unknown:
+        sys.exit(f"unknown set(s): {', '.join(unknown)}; known: {', '.join(SETS)}")
+    DST.mkdir(parents=True, exist_ok=True)
     write_json(DST / "Contents.json", {"info": INFO})
+    # Sets the app no longer reads.
+    for stale in (p for p in DST.iterdir() if p.is_dir() and p.name not in SETS):
+        shutil.rmtree(stale)
     count = 0
-    for folder, variants in SETS.items():
+    for folder in wanted:
+        variants = SETS[folder]
         group = DST / folder
+        if group.exists():
+            shutil.rmtree(group)
         group.mkdir()
         write_json(group / "Contents.json", {"info": INFO})
         for light in sorted((SRC / folder).glob("*-light.svg")):

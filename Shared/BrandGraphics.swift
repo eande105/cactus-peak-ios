@@ -6,7 +6,8 @@ import SwiftUI
 // SVGs, with a light and a dark appearance and preserved vector data. Three groups:
 //   objects-<id>                 one gym object, brand colours on a clear ground
 //   category-<id>[-cut]          a class category's object in its colour, bare or in the 60° cut tile
-//   rack-class-<id>-16x9         a class type's Night orbit Rack (class heroes and cards)
+//   crop-class-<id>-<ratio>      a class category's object, large and cut by the frame, on the category tint
+//                                (ObjectCrop on the site's and the web app's class cards); 16x9 heroes, 2x1 cards
 // Graphics are images, not interface icons. Interface icons stay on SF Symbols.
 
 /// The club spaces. Raw values are the shared space ids (`spaceObjects` in objects.ts).
@@ -57,8 +58,9 @@ extension ClassCategory {
 
 /// Image names in BrandGraphics.xcassets.
 enum BrandImage {
-    /// `wide` is the type's Night orbit Rack (heroes, cards); `square` is the category's cut tile (tiles, widgets).
-    enum ClassVariant { case wide, square }
+    /// `wide` is the 16:9 crop (heroes), `card` the 2:1 crop (card bands), `square` the category's cut tile
+    /// (tiles, widgets). The crops are the same picture as the class cards on the site and in the web app.
+    enum ClassVariant { case wide, card, square }
     /// Both show the space's lead object. `square` stays for call sites that size the object larger.
     enum SpaceVariant { case square, tile }
 
@@ -76,7 +78,8 @@ enum BrandImage {
     static func object(_ id: String) -> String { "objects-\(id)" }
     static func classGraphic(_ c: ClassCategory, _ v: ClassVariant = .wide) -> String {
         switch v {
-        case .wide: "rack-class-\(c.graphicID)-16x9"
+        case .wide: "crop-class-\(c.graphicID)-16x9"
+        case .card: "crop-class-\(c.graphicID)-2x1"
         case .square: "category-\(c.graphicID)-cut"
         }
     }
@@ -120,13 +123,13 @@ struct ObjectImage: View {
     }
 }
 
-/// Class graphic for a category: the type's Night orbit for heroes and cards, the cut tile for tiles.
+/// Class graphic for a category: the category crop for heroes and cards, the cut tile for tiles.
 struct ClassGraphic: View {
     var category: ClassCategory
     var variant: BrandImage.ClassVariant = .wide
     var body: some View {
         switch variant {
-        case .wide: BrandGraphicImage(name: BrandImage.classGraphic(category, .wide))
+        case .wide, .card: BrandGraphicImage(name: BrandImage.classGraphic(category, variant))
         case .square: ObjectImage(name: BrandImage.classGraphic(category, .square))
         }
     }
@@ -175,7 +178,7 @@ struct CoachImage: View {
         let shape = circle ? AnyShape(Circle()) : AnyShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         ZStack {
             shape.fill(Color.nightSurface)
-            Text(initials).font(.system(size: s * 0.34, weight: .semibold)).foregroundStyle(Color.nightOnSurface)
+            Text(initials).monogramFont(diameter: s).foregroundStyle(Color.nightOnSurface)
         }
         .frame(width: s, height: s)
         .overlay(alignment: .bottomTrailing) {

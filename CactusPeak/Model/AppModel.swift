@@ -16,7 +16,17 @@ struct MemberProfile: Hashable, Sendable {
     var isTeen: Bool = false
     var ownerFirst: String = ""
     var email: String = ""
+    /// The counts saved on the member's row. Nil without a backend (previews, tests), where the visit list is all there is.
+    var stats: MemberStats?
     var name: String { "\(first) \(last)" }
+}
+
+/// `streak_weeks`, `lifetime_visits` and `longest_streak` from the member's row. The web app shows these, so iOS
+/// reads them too and both apps show the same numbers. The row has history from before the app's visit list.
+struct MemberStats: Hashable, Sendable {
+    var streakWeeks: Int
+    var lifetimeVisits: Int
+    var longestStreak: Int
 }
 
 /// Demo logins (supabase/README.md). DEBUG builds sign in as one of them from Settings > Demo controls.

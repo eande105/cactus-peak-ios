@@ -13,30 +13,29 @@ struct PassView: View {
         NavigationStack {
             TimelineView(.periodic(from: .now, by: 1)) { _ in
                 let st = model.passState
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        stateStrip(st)
-                        CheckInPassCard(
-                            name: model.member.name, plan: model.member.isTeen ? "Teen pass" : model.member.plan.name,
-                            number: model.member.memberNumber, clubName: model.club(model.currentClubID).fullName, code: model.passCode(),
-                            codeHidden: hidden(st), checkedInText: checkedText(st),
-                            onChangeClub: { showClubPicker = true })
-                        if !model.member.isTeen { wallet }
-                        kidsToday
+                List {
+                    if hasStrip(st) { stateStrip(st).listRowBackground(Color.clear).listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)) }
+                    CheckInPassCard(
+                        name: model.member.name, plan: model.member.isTeen ? "Teen pass" : model.member.plan.name,
+                        number: model.member.memberNumber, clubName: model.club(model.currentClubID).fullName, code: model.passCode(),
+                        codeHidden: hidden(st), checkedInText: checkedText(st),
+                        onChangeClub: { showClubPicker = true })
+                        .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+                    if !model.member.isTeen { wallet.listRowBackground(Color.clear) }
+                    kidsToday
+                    Section {
                         HStack {
                             BusynessMeter(reading: model.busyness(model.club(model.currentClubID)), variant: .inline, now: model.now)
                             Spacer()
-                            Text(model.club(model.currentClubID).fullName).font(.footnote).foregroundStyle(Color.textMuted)
+                            Text(model.club(model.currentClubID).fullName).font(.footnote).foregroundStyle(.secondary)
                         }
-                        .padding(.horizontal, 4)
-                        more
                     }
-                    .padding(16)
+                    more
                 }
+                .listStyle(.insetGrouped)
             }
-            .screenBackground()
             .navigationTitle("Pass").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(role: .close) { router.dismissSheet() }.barItem() } }
             .sheet(isPresented: $showClubPicker) { ClubSwitcherSheet(mode: .pass).presentationDetents([.medium, .large]) }
             .alert("Wallet pass not available in this build", isPresented: $walletAlert) {
                 Button("OK", role: .cancel) {}
@@ -47,7 +46,7 @@ struct PassView: View {
         .onChange(of: scenePhase) { _, p in if p != .active { boost(false) } else { boost(true) } }
         .sensoryFeedback(.success, trigger: model.checkedInAt)
         .onChange(of: model.checkedInAt) { _, v in
-            if let v { AccessibilityNotification.Announcement("Checked in at \(v.cpTime)").post(); boost(false) }
+            if let v { AccessibilityNotification.Announcement("Checked in at \(v.cpTimeShort)").post(); boost(false) }
         }
     }
 
@@ -55,8 +54,15 @@ struct PassView: View {
         switch st { case .frozen, .seeDesk, .closed, .wrongClub: true; default: false }
     }
     private func checkedText(_ st: AppModel.PassState) -> String? {
-        if case .checkedIn(let d) = st { return "Checked in · \(d.cpTime)" }
+        if case .checkedIn(let d) = st { return "Checked in · \(d.cpTimeShort)" }
         return nil
+    }
+
+    private func hasStrip(_ st: AppModel.PassState) -> Bool {
+        switch st {
+        case .frozen, .paymentWarning, .paymentPaused, .seeDesk, .wrongClub, .closed, .beforeDesk: true
+        default: model.offline
+        }
     }
 
     // MARK: State strip
@@ -71,12 +77,12 @@ struct PassView: View {
         case .paymentPaused: Banner(tone: .danger, text: "New bookings are paused until you pay. Your pass still works.", actionTitle: nil, action: nil)
         case .seeDesk:
             VStack(alignment: .leading, spacing: 8) {
-                Text("See the front desk.").font(.title3.bold()).foregroundStyle(Color.statusDanger)
+                Text("See the front desk.").brandFont(.title2).foregroundStyle(Color.statusDanger)
                 Button("Call the front desk · \(model.club(model.currentClubID).phone)") { openURL(URL(string: "tel:\(model.club(model.currentClubID).phone.filter(\.isNumber))")!) }.primaryAction()
             }
         case .wrongClub(let home): Banner(tone: .warning, text: "Your Trailhead plan covers \(home). A day pass here is $20.", actionTitle: "See plans") { router.dismissSheet(); router.selection = .you; router.paths[.you] = [.membership, .plans] }
         case .closed(let opens): Banner(tone: .info, text: "\(model.club(model.currentClubID).fullName) opens at \(opens)", actionTitle: nil, action: nil)
-        case .beforeDesk: Banner(tone: .info, text: "Desk opens at 6:00 am. Scan at the door reader.", actionTitle: nil, action: nil)
+        case .beforeDesk: Banner(tone: .info, text: "Desk opens at 6 am. Scan at the door reader.", actionTitle: nil, action: nil)
         default:
             if model.offline { StatusPill(text: "Offline code", symbol: "wifi.slash", tone: .neutral) }
         }
@@ -84,45 +90,42 @@ struct PassView: View {
 
     // MARK: Wallet
     @ViewBuilder private var wallet: some View {
-        VStack(spacing: 4) {
-            if model.walletAdded { Label("In Apple Wallet", systemImage: "checkmark.circle.fill").font(.subheadline.weight(.semibold)).foregroundStyle(Color.statusSuccess).frame(minHeight: 44) }
-            else {
-                WalletButton { walletAlert = true }.frame(height: 48).frame(maxWidth: .infinity)
-                    .accessibilityLabel("Add to Apple Wallet").accessibilityAddTraits(.isButton)
-            }
+        if model.walletAdded { Label("In Apple Wallet", systemImage: "checkmark.circle.fill").font(.subheadline.weight(.semibold)).foregroundStyle(Color.statusSuccess).frame(minHeight: 44) }
+        else {
+            WalletButton { walletAlert = true }.frame(height: 48).frame(maxWidth: .infinity)
+                .accessibilityLabel("Add to Apple Wallet").accessibilityAddTraits(.isButton)
         }
     }
 
     @ViewBuilder private var kidsToday: some View {
         let kids = model.upcomingBookings.filter { $0.kind == .kids && AZ.cal.isDate($0.start, inSameDayAs: model.now) }
         if let k = kids.first {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Kids club today: \(k.detail) · \(k.start.cpTimeShort)–\(k.end.cpTimeShort)").font(.subheadline.weight(.semibold))
-                Text("Show this pass at the kids club desk.").font(.footnote).foregroundStyle(Color.textMuted)
-            }.cardStyle(padding: 14)
+            Section {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Kids club today: \(k.detail) · \(k.start.cpTimeShort)–\(k.end.cpTimeShort)").font(.subheadline.weight(.semibold))
+                    Text("Show this pass at the kids club desk.").font(.footnote).foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
     private var more: some View {
-        VStack(spacing: 0) {
+        Section {
             if model.guestPassesLeft > 0 || !model.member.isTeen {
                 Button { router.dismissSheet(); router.selection = .you; router.paths[.you] = [.guestPasses] } label: {
-                    HStack { Label("Guest pass", systemImage: "person.badge.plus"); Spacer(); Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted) }.frame(minHeight: 48).contentShape(Rectangle())
-                }.buttonStyle(.plain)
-                Divider()
+                    Label("Guest pass", systemImage: "person.badge.plus").frame(minHeight: 44)
+                }
             }
             Button { router.dismissSheet(); router.selection = .you; router.paths[.you] = [.settings] } label: {
-                HStack { Label("Pass settings", systemImage: "gearshape"); Spacer(); Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted) }.frame(minHeight: 48).contentShape(Rectangle())
-            }.buttonStyle(.plain)
+                Label("Pass settings", systemImage: "gearshape").frame(minHeight: 44)
+            }
             #if DEBUG
-            Divider()
             Button { model.checkIn() } label: {
-                HStack { Label("Demo: simulate a desk scan", systemImage: "dot.radiowaves.left.and.right"); Spacer() }.frame(minHeight: 48).contentShape(Rectangle()).foregroundStyle(Color.textMuted)
-            }.buttonStyle(.plain)
+                Label("Demo: simulate a desk scan", systemImage: "dot.radiowaves.left.and.right").frame(minHeight: 44).foregroundStyle(.secondary)
+            }
             #endif
         }
-        .padding(.horizontal, 16).background(Color.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.hairline, lineWidth: 1))
+        .tint(.primary)
     }
 
     // MARK: Brightness and idle timer

@@ -108,29 +108,7 @@ struct RibPeakShape: Shape {
     }
 }
 
-// MARK: - Archivo (variable font, named instances)
-// Archivo-VF.ttf is registered through UIAppFonts. Its named instances resolve by PostScript name.
-// Only used for big numerals, eyebrows and display titles inside content. Body text stays SF Pro.
-
-extension Font {
-    static func archivoExtraBold(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
-        .custom("ArchivoRoman-ExtraBold", size: size, relativeTo: style)
-    }
-    static func archivoBold(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
-        .custom("ArchivoRoman-Bold", size: size, relativeTo: style)
-    }
-    static func archivoSemiBold(_ size: CGFloat, relativeTo style: Font.TextStyle) -> Font {
-        .custom("Archivo-SemiBold", size: size, relativeTo: style)
-    }
-    static var eyebrow: Font { .archivoSemiBold(12, relativeTo: .caption) }
-}
-
-extension View {
-    /// Uppercase tracked label (echoes ATHLETIC in the wordmark). Pass the string already in capitals.
-    func eyebrowStyle(_ color: Color = .textMuted) -> some View {
-        self.font(.eyebrow).tracking(2.4).foregroundStyle(color)
-    }
-}
+// Archivo and every other font come from Typography.swift.
 
 // MARK: - Rib meter (the five-rib system)
 

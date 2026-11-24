@@ -64,15 +64,6 @@ extension AppModel {
     }
 
     /// One-line explanation placed next to the action. Times come from the booking window.
-    func rulesText(for s: ClassSession) -> (cancel: String, waitlist: String, strikes: String?) {
-        let free = s.start.addingTimeInterval(-2 * 3600)
-        let wl = s.start.addingTimeInterval(-3600)
-        let c = "Cancel free until \(free.cpTime) (2 hours before). After that, it counts as a late cancel."
-        let w = "If this class is full, the waitlist moves you up until \(wl.cpTime) (1 hour before). You get a push and 30 minutes to confirm."
-        let st = strikesIn30 > 0 ? "You have \(strikesIn30) late cancel\(strikesIn30 == 1 ? "" : "s") in the last 30 days. 3 in 30 days pauses new bookings for 3 days." : nil
-        return (c, w, st)
-    }
-
     // MARK: Book
     func book(_ s: ClassSession, force: Bool = false) -> BookOutcome {
         if inFlight.contains(s.id) { return .rejected("Booking is already in progress.") }
@@ -268,8 +259,18 @@ extension AppModel {
         if met { weeks += 1 }
         var best = 0, run = 0
         for c in counts.dropLast() { if c >= goal { run += 1; best = max(best, run) } else { run = 0 } }
+        // The member's row wins, as on the web, so both apps show the same streak and best streak.
+        if let stats = member.stats {
+            return StreakInfo(weeks: stats.streakWeeks, best: max(stats.longestStreak, stats.streakWeeks),
+                              thisWeek: counts.last ?? 0, goalMet: met)
+        }
         best = max(best, weeks, 11)
         return StreakInfo(weeks: weeks, best: best, thisWeek: counts.last ?? 0, goalMet: met)
+    }
+    /// All visits so far. The row's count includes visits from before the visit list, so the larger number wins,
+    /// the same rule as the web.
+    var lifetimeVisits: Int {
+        max(member.stats?.lifetimeVisits ?? 0, visits.filter { $0 <= now }.count)
     }
     func attendedByCategory(weeks: Int = 12) -> [(ClassCategory, Int)] {
         let from = weekStart(now).addingDays(-7 * (weeks - 1))

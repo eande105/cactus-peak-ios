@@ -45,6 +45,11 @@ targets:
     sources:
       - path: CactusPeak
       - path: Shared
+    preBuildScripts:
+      # The type rules (Shared/Typography.swift, T1-T5) on the app, the widgets and Shared. A violation fails the build.
+      - name: Check type roles
+        script: /usr/bin/python3 "$SRCROOT/tools/check-type.py" "$SRCROOT"
+        basedOnDependencyAnalysis: false
     dependencies:
       - target: CactusPeakWidgets
         embed: true
@@ -88,6 +93,8 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_FILE: CactusPeak/Info.plist
         CODE_SIGN_ENTITLEMENTS: CactusPeak/CactusPeak.entitlements
+        # The type check reads every .swift file, which a sandboxed script phase cannot do. Only this target.
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
   CactusPeakWidgets:
     type: app-extension
     platform: iOS

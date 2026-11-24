@@ -3,17 +3,21 @@ import SwiftUI
 // MARK: - Card, flow layout, small helpers
 
 extension View {
-    /// Card = Surface fill, 14 pt continuous corner, 1 pt hairline, no shadow. Used only for real objects the member picks.
-    func cardStyle(padding: CGFloat = 16, radius: CGFloat = 14, fill: Color = .surface) -> some View {
+    /// Card = secondary grouped fill, continuous corner (20 pt by default), no border, no shadow.
+    /// Used only for real objects the member picks. `radius` and `fill` keep their old names.
+    func cardStyle(padding: CGFloat = 16, radius: CGFloat = 20, fill: Color = Color(.secondarySystemGroupedBackground)) -> some View {
         self.padding(padding)
             .background(fill, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Color.hairline, lineWidth: 1))
     }
-    func nightCard(padding: CGFloat = 16, radius: CGFloat = 14) -> some View {
+    func nightCard(padding: CGFloat = 16, radius: CGFloat = 20) -> some View {
         self.padding(padding).background(Color.nightSurface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
-    func screenBackground() -> some View { self.background(Color.appBackground.ignoresSafeArea()) }
-    func sectionHeader() -> some View { self.font(.title3.bold()).foregroundStyle(Color.textPrimary).accessibilityAddTraits(.isHeader) }
+    func screenBackground() -> some View { self.background(Color(.systemGroupedBackground).ignoresSafeArea()) }
+    func sectionHeader() -> some View { self.brandFont(.section).foregroundStyle(Color.primary).accessibilityAddTraits(.isHeader) }
+
+    /// Toolbar items are monochrome (HIG Toolbars). The app sets `.tint(Color.brandAccent)` at the root, which would
+    /// tint toolbar glyphs. Put `barItem()` on every toolbar button except the one prominent primary action.
+    func barItem() -> some View { self.tint(.primary) }
 }
 
 /// Wraps children onto rows. Measure and place use the same width rule, so a row never reports a different height
@@ -51,15 +55,15 @@ struct FlowLayout: Layout {
 // and Night on Dawn Copper in dark mode (6.22:1). Secondary = bordered capsule. Links = borderless with the Link colour.
 
 extension View {
+    // A frame outside a bordered button widens its hit area but not its capsule, so `full` widens the label
+    // inside the style instead.
     func primaryAction(full: Bool = false) -> some View {
-        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large)
-            .tint(Color.brandAccent).foregroundStyle(Color.brandOnAccent)
-            .frame(maxWidth: full ? .infinity : nil)
+        self.buttonStyle(FlexibleLabel(base: .borderedProminent, full: full)).buttonBorderShape(.capsule)
+            .controlSize(.large).tint(Color.brandAccent).foregroundStyle(Color.brandOnAccent)
     }
     func secondaryAction(full: Bool = false, destructive: Bool = false) -> some View {
-        self.buttonStyle(.bordered).buttonBorderShape(.capsule).controlSize(.large)
+        self.buttonStyle(FlexibleLabel(base: .bordered, full: full)).buttonBorderShape(.capsule).controlSize(.large)
             .tint(destructive ? Color.statusDanger : Color.brandSecondary)
-            .frame(maxWidth: full ? .infinity : nil)
     }
     func linkAction(danger: Bool = false) -> some View {
         self.buttonStyle(.borderless).tint(danger ? Color.statusDanger : Color.linkText).frame(minHeight: 44)
@@ -76,10 +80,14 @@ struct StatusPill: View {
         case .success: (.statusSuccess, .statusSuccessSubtle)
         case .warning: (.statusWarning, .statusWarningSubtle)
         case .danger: (.statusDanger, .statusDangerSubtle)
-        case .neutral: (.textPrimary, .surfaceMuted)
-        case .info: (.textPrimary, .surfaceMuted)
+        case .neutral: (Color.primary, Color(.tertiarySystemFill))
+        case .info: (Color.primary, Color(.tertiarySystemFill))
         }
-        Label(text, systemImage: symbol)
+        // An HStack, not a Label: inside a list row a Label takes the row's wide icon spacing.
+        HStack(spacing: 4) {
+            Image(systemName: symbol).imageScale(.small).accessibilityHidden(true)
+            Text(text)
+        }
             .font(.footnote.weight(.semibold))
             .foregroundStyle(fg)
             .padding(.horizontal, 10).padding(.vertical, 5)
@@ -98,13 +106,13 @@ struct Banner: View {
         let (fg, bg, icon): (Color, Color, String) = switch tone {
         case .warning: (.statusWarning, .statusWarningSubtle, "exclamationmark.triangle.fill")
         case .danger: (.statusDanger, .statusDangerSubtle, "xmark.octagon.fill")
-        case .info: (.textPrimary, .surfaceMuted, "info.circle.fill")
+        case .info: (Color.primary, Color(.tertiarySystemFill), "info.circle.fill")
         case .success: (.statusSuccess, .statusSuccessSubtle, "checkmark.circle.fill")
         }
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Image(systemName: icon).foregroundStyle(fg).accessibilityHidden(true)
-                Text(text).font(.subheadline).foregroundStyle(Color.textPrimary).fixedSize(horizontal: false, vertical: true)
+                Text(text).font(.subheadline).foregroundStyle(Color.primary).fixedSize(horizontal: false, vertical: true)
             }
             if let actionTitle, let action {
                 Button(actionTitle, action: action).linkAction().padding(.leading, 28)
@@ -122,10 +130,10 @@ struct OfflineBanner: View {
     var body: some View {
         Label(text, systemImage: "wifi.slash")
             .font(.footnote.weight(.medium))
-            .foregroundStyle(Color.textPrimary)
+            .foregroundStyle(Color.primary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -160,7 +168,7 @@ struct ToastView: View {
     var view: () -> Void = {}
     var body: some View {
         HStack(spacing: 12) {
-            Text(toast.text).font(.subheadline.weight(.semibold)).foregroundStyle(Color.textPrimary)
+            Text(toast.text).font(.subheadline.weight(.semibold)).foregroundStyle(Color.primary)
             if toast.undoID != nil {
                 Button("Undo", action: undo).font(.subheadline.weight(.bold)).foregroundStyle(Color.linkText).frame(minHeight: 44)
             }
@@ -172,4 +180,39 @@ struct ToastView: View {
         .glassEffect(.regular, in: .capsule)
         .accessibilityElement(children: .combine)
     }
+}
+
+/// Wraps a system button style so the label can fill the width. `primaryAction(full:)` and `secondaryAction(full:)`
+/// use it; a Menu does not take a primitive style, so a full-width Menu frames its own label.
+struct FlexibleLabel<Base: PrimitiveButtonStyle>: PrimitiveButtonStyle {
+    var base: Base
+    var full: Bool
+    func makeBody(configuration: Configuration) -> some View {
+        Button(role: configuration.role, action: configuration.trigger) {
+            configuration.label.frame(maxWidth: full ? .infinity : nil)
+        }
+        .buttonStyle(base)
+    }
+}
+
+/// Keeps a grouped list at a readable width on a wide window (iPad, a wide split view), as Settings and Wallet do on
+/// iPad. On a phone the list keeps the system margins: the modifier changes nothing below `maxWidth` plus margins.
+struct ReadableWidth: ViewModifier {
+    var maxWidth: CGFloat = 680
+    @State private var width: CGFloat = 0
+    func body(content: Content) -> some View {
+        let margin = (width - maxWidth) / 2
+        Group {
+            if margin > 40 {
+                content.contentMargins(.horizontal, margin, for: .scrollContent)
+            } else {
+                content
+            }
+        }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+}
+
+extension View {
+    func readableWidth(_ maxWidth: CGFloat = 680) -> some View { modifier(ReadableWidth(maxWidth: maxWidth)) }
 }

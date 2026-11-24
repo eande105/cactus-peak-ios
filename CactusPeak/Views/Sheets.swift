@@ -27,6 +27,7 @@ struct SheetHost: View {
             case .editProfile: EditProfileSheet()
             case .calendar(let id): CalendarSheet(bookingID: id)
             case .goal: GoalSheet()
+            case .page(let r): PageSheet(route: r)
             }
         }
         .presentationDetents(detents)
@@ -38,13 +39,12 @@ struct SheetHost: View {
     private var detents: Set<PresentationDetent> {
         let large: Set<PresentationDetent> = [.large]
         let both: Set<PresentationDetent> = [.medium, .large]
-        let medium: Set<PresentationDetent> = [.medium]
         if dts.isAccessibilitySize { return large }
         switch sheet {
-        case .pass, .addFamily, .comparePlans, .ptPicker, .editProfile, .calendar: return large
+        case .pass, .addFamily, .comparePlans, .ptPicker, .editProfile, .calendar, .page: return large
         case .clubSwitcher, .filters: return both
         case .reserve(let r): return r.kind == .kidsClub ? large : both
-        default: return medium
+        default: return both
         }
     }
     private var dragIndicator: Visibility {
@@ -70,28 +70,33 @@ struct CancelSheet: View {
             if let b = model.booking(bookingID) {
                 let p = model.cancelPreview(b)
                 let alt = model.sameClassThisWeek(b)
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Cancel \(b.title)?").font(.title3.bold()).accessibilityAddTraits(.isHeader)
-                        Text("\(b.title.uppercased()) · \(b.start.cpWeekdayShort.uppercased()) \(b.start.cpTime.uppercased())").eyebrowStyle()
-                        consequences(b, p)
-                        VStack(spacing: 8) {
-                            Button("Keep my spot") { router.dismissSheet() }.primaryAction(full: true)
-                            if !alt.isEmpty, b.kind == .classSession {
-                                Button("Reschedule instead") {
-                                    router.dismissSheet()
-                                    router.day = alt[0].start.startOfAZDay; router.segment = .classes
-                                    model.currentClubID = alt[0].clubID; router.selection = .book; router.paths[.book] = []
-                                }.secondaryAction(full: true)
-                            }
-                            Button("Cancel booking") { confirm(b, p) }.linkAction(danger: true).frame(maxWidth: .infinity)
+                Form {
+                    Section {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Cancel \(b.title)?").font(.headline).accessibilityAddTraits(.isHeader)
+                            Text("\(b.start.cpWeekdayShort) \(b.start.cpTimeShort)").font(.subheadline).foregroundStyle(.secondary)
                         }
-                        if !p.late { reasons }
+                        consequences(b, p)
                     }
-                    .padding(16)
+                    Section {
+                        Button("Keep my spot") { router.dismissSheet() }.primaryAction(full: true)
+                    }
+                    .listRowBackground(Color.clear)
+                    Section {
+                        if !alt.isEmpty, b.kind == .classSession {
+                            Button("Reschedule instead") {
+                                router.dismissSheet()
+                                router.day = alt[0].start.startOfAZDay; router.segment = .classes
+                                model.currentClubID = alt[0].clubID; router.selection = .book; router.paths[.book] = []
+                            }
+                        }
+                        Button("Cancel booking", role: .destructive) { confirm(b, p) }
+                    }
+                    if !p.late { reasons }
                 }
-                .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { router.dismissSheet() } } }
+                .navigationTitle("Cancel booking")
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { router.dismissSheet() } } }
             } else {
                 ContentUnavailableView("Booking not found", systemImage: "ticket")
             }
@@ -99,39 +104,31 @@ struct CancelSheet: View {
     }
 
     @ViewBuilder private func consequences(_ b: Booking, _ p: CancelPreview) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            switch b.kind {
-            case .kids: Text("Kids club has no late-cancel strikes.")
-            case .pt:
-                Text(p.late ? "Counts as a used session." : "Free until \(p.freeUntil.cpWeekdayShort) \(p.freeUntil.cpTime) (24 hours before).")
-            default:
-                if !p.late { Text("You can rebook until it fills.") }
-                else {
-                    if p.pausesBookings {
-                        Label("This is your 3rd strike. New bookings pause for 3 days, until \(p.pauseEnds.cpWeekdayShort) \(p.pauseEnds.cpDayMonth).", systemImage: "xmark.circle.fill").foregroundStyle(Color.statusDanger)
-                    } else {
-                        Label("Counts as a strike (\(p.strikeNumber) of 3 in 30 days)", systemImage: "xmark.circle.fill").foregroundStyle(Color.statusDanger)
-                    }
-                    if b.kind == .classSession { Label("Your spot goes to the next person on the waitlist", systemImage: "xmark.circle.fill").foregroundStyle(Color.statusDanger) }
-                    Text("3 strikes in 30 days pause new bookings for 3 days.").font(.footnote).foregroundStyle(Color.textMuted)
+        switch b.kind {
+        case .kids: Text("Kids club has no late-cancel strikes.").font(.subheadline)
+        case .pt:
+            Text(p.late ? "Counts as a used session." : "Free until \(p.freeUntil.cpWeekdayShort) \(p.freeUntil.cpTimeShort) (24 hours before).").font(.subheadline)
+        default:
+            if !p.late { Text("You can rebook until it fills.").font(.subheadline) }
+            else {
+                if p.pausesBookings {
+                    Label("This is your 3rd strike. New bookings pause for 3 days, until \(p.pauseEnds.cpWeekdayShort) \(p.pauseEnds.cpDayMonth).", systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger)
+                } else {
+                    Label("Counts as a strike (\(p.strikeNumber) of 3 in 30 days)", systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger)
                 }
+                if b.kind == .classSession { Label("Your spot goes to the next person on the waitlist", systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger) }
+                Text("3 strikes in 30 days pause new bookings for 3 days.").font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .font(.subheadline)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var reasons: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Why are you cancelling?").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted)
-            ForEach(["Schedule changed", "Feeling unwell", "Booked by mistake", "Other reason"], id: \.self) { r in
-                Button { reason = r } label: {
-                    HStack { Image(systemName: reason == r ? "largecircle.fill.circle" : "circle").foregroundStyle(reason == r ? Color.brandAccent : Color.borderStrong)
-                        Text(r).foregroundStyle(Color.textPrimary); Spacer() }
-                    .frame(minHeight: 44).contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityAddTraits(reason == r ? .isSelected : [])
+        Section("Why are you cancelling?") {
+            Picker("Reason", selection: $reason) {
+                ForEach(["Schedule changed", "Feeling unwell", "Booked by mistake", "Other reason"], id: \.self) { Text($0).tag(Optional($0)) }
             }
-            if reason == "Other reason" { TextField("Tell us more (optional)", text: $other).textFieldStyle(.roundedBorder) }
+            .pickerStyle(.inline).labelsHidden()
+            if reason == "Other reason" { TextField("Tell us more (optional)", text: $other) }
         }
     }
 
@@ -154,23 +151,35 @@ struct WaitlistSheet: View {
     var body: some View {
         NavigationStack {
             if let s = model.session(sessionID) {
+                // After the Apple Store checkout sheet: what you are joining leads, then one group of label and
+                // value rows, then the one thing to agree to.
                 Form {
                     Section {
-                        Text(s.name).font(.headline)
-                        if model.activeWaitlists >= 5 {
-                            Banner(tone: .warning, text: "You are on 5 waitlists. Leave one to join another.", actionTitle: "See my waitlists") { router.dismissSheet(); router.push(.myBookings) }
-                        } else {
-                            Text("You are \(ordinal(model.waitlistCount(s) + 1)) in line. We add you until \(s.start.addingTimeInterval(-3600).cpTime) (1 hour before class). When a spot opens, you get a push and 30 minutes to confirm. Late cancels count as strikes.").font(.body)
+                        SheetSummaryHeader(title: s.name,
+                                           line: "\(s.start.cpFormat("EEE MMM d")) · \(s.start.cpTimeShort)–\(s.end.cpTimeShort) · \(s.room)") {
+                            ClassGraphic(category: s.category, variant: .square)
                         }
                     }
-                    if model.activeWaitlists < 5 {
+                    if model.activeWaitlists >= 5 {
                         Section {
-                            Toggle("I understand the late-cancel rule.", isOn: $agreed)
-                            if !model.notificationsAuthorized { Label("Alerts are off. Turn them on so you do not miss a spot.", systemImage: "bell.slash").font(.footnote).foregroundStyle(Color.textMuted) }
+                            Banner(tone: .warning, text: "You are on 5 waitlists. Leave one to join another.", actionTitle: "See my waitlists") { router.dismissSheet(); router.push(.myBookings) }
                         }
+                    } else {
+                        Section {
+                            LabeledContent("Your place", value: "\(ordinal(model.waitlistCount(s) + 1)) in line")
+                            LabeledContent("Joins until", value: s.start.addingTimeInterval(-3600).cpTimeShort)
+                            LabeledContent("If a spot opens", value: "30 min to confirm")
+                        } footer: {
+                            Text("We send a push when a spot opens. The waitlist closes 1 hour before class.")
+                        }
+                        Section {
+                            Toggle("I understand late cancels count as strikes", isOn: $agreed)
+                            if !model.notificationsAuthorized { Label("Alerts are off. Turn them on so you do not miss a spot.", systemImage: "bell.slash").font(.footnote).foregroundStyle(.secondary) }
+                        } footer: { Text("Turn this on to join.") }
                         Section { Button("Pick another class") { router.dismissSheet() }.linkAction() }
                     }
                 }
+                .listSectionSpacing(.compact)
                 .navigationTitle("Join waitlist").navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() } }
@@ -210,23 +219,32 @@ struct ReserveSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    holdBanner
-                    Text(summary).font(.headline)
-                    switch request.kind {
-                    case .court: courtBody
-                    case .lane: laneBody
-                    case .kidsClub: kidsBody
+            Form {
+                Section {
+                    SheetSummaryHeader(title: headerTitle, line: headerLine) {
+                        SpaceGraphic(id: headerSpace).padding(9).frame(width: 56, height: 56)
+                            .background(Color.surfaceMuted).clipShape(CutTileShape())
                     }
-                    if let error { Label(error, systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger) }
-                    reserveButton
                 }
-                .padding(16)
+                Section { holdBanner }.listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                switch request.kind {
+                case .court: courtBody
+                case .lane: laneBody
+                case .kidsClub: kidsBody
+                }
+                if let error {
+                    Section { Label(error, systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger) }
+                }
             }
+            .listSectionSpacing(.compact)
             .navigationTitle(request.kind == .court ? "Reserve court" : (request.kind == .lane ? "Reserve lane" : "Kids club"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { router.dismissSheet() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Reserve") { submit() }.accessibilityLabel(reserveTitle).fontWeight(.semibold).disabled(request.kind == .kidsClub && chosenKids.isEmpty)
+                }
+            }
         }
         .onAppear { reserved = false; model.beginHold(req, label: summary) }
         .onDisappear { if !reserved { model.endHold() } }
@@ -235,9 +253,25 @@ struct ReserveSheet: View {
     private var summary: String {
         switch request.kind {
         case .court: "\(request.sport?.title ?? "Court") · \(request.start.cpFormat("EEE MMM d")) · \(club.fullName)"
-        case .lane: "Lap swim · \(request.start.cpFormat("EEE MMM d")), \(request.start.cpTime) · \(club.fullName)"
+        case .lane: "Lap swim · \(request.start.cpFormat("EEE MMM d")), \(request.start.cpTimeShort) · \(club.fullName)"
         case .kidsClub: "\(club.fullName) · \(request.start.cpFormat("EEE MMM d")), \(request.start.cpTimeShort)–\(request.start.addingTimeInterval(7200).cpTimeShort)"
         }
+    }
+
+    private var headerTitle: String {
+        switch request.kind {
+        case .court: request.sport?.title ?? "Court"
+        case .lane: "Lap swim"
+        case .kidsClub: "Kids club"
+        }
+    }
+    private var headerLine: String {
+        let day = request.start.cpFormat("EEE MMM d")
+        let end = request.start.addingTimeInterval(Double(request.kind == .kidsClub ? 120 : (request.kind == .lane ? 45 : request.duration)) * 60)
+        return "\(day) · \(request.start.cpTimeShort)–\(end.cpTimeShort) · \(club.fullName)"
+    }
+    private var headerSpace: SpaceGraphicID {
+        switch request.kind { case .court: .courts; case .lane: .lapPool; case .kidsClub: .kidsClub }
     }
 
     // Hold banner: 5 minutes, one extension
@@ -276,74 +310,86 @@ struct ReserveSheet: View {
     @ViewBuilder private var courtBody: some View {
         let sport = request.sport ?? .pickleball
         let slot = model.courtSlots(club: club, sport: sport, day: request.start.startOfAZDay, duration: request.duration).first { $0.start == request.start }
-        LabeledContent("Length", value: "\(request.duration) min").font(.subheadline)
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Court").font(.subheadline.weight(.semibold))
+        Section {
+            LabeledContent("Length", value: "\(request.duration) min")
+            LabeledContent("Included with", value: model.member.plan.name)
+        }
+        Section {
             ChoiceList(selection: $court, options: [(0, "Any court", nil)] + (1...max(club.courts(for: sport), 1)).map { c in
                 (c, "Court \(c)", (slot?.free.contains(c) ?? false) ? nil : "Taken") })
+        } header: { Text("Court") } footer: {
+            Text("Add a partner after you reserve. Free cancel until \(request.start.addingTimeInterval(-7200).cpTimeShort). Later is a late cancel.")
         }
-        Text("Add a partner after you reserve.").font(.footnote).foregroundStyle(Color.textMuted)
-        Text("Included with \(model.member.plan.name)").font(.subheadline.weight(.medium))
-        Text("Free cancel until \(request.start.addingTimeInterval(-7200).cpTime) Later is a late cancel.").font(.footnote).foregroundStyle(Color.textMuted)
     }
 
     @ViewBuilder private var laneBody: some View {
         let slot = model.laneSlots(club: club, day: request.start.startOfAZDay).first { $0.start == request.start }
-        LabeledContent("Length", value: "45 min").font(.subheadline)
-        ChoiceList(selection: $lane, options: [(0, "Any lane", nil)] + (1...max(club.lanes, 1)).map { l in
-            let sw = slot?.swimmers[l - 1] ?? 2
-            return (l, "Lane \(l)", sw == 1 ? "1 of 2 swimmers" : (sw >= 2 ? "Full" : nil)) })
-        Text("Free cancel until \(request.start.addingTimeInterval(-7200).cpTime)").font(.footnote).foregroundStyle(Color.textMuted)
+        Section { LabeledContent("Length", value: "45 min") }
+        Section {
+            ChoiceList(selection: $lane, options: [(0, "Any lane", nil)] + (1...max(club.lanes, 1)).map { l in
+                let sw = slot?.swimmers[l - 1] ?? 2
+                return (l, "Lane \(l)", sw == 1 ? "1 of 2 swimmers" : (sw >= 2 ? "Full" : nil)) })
+        } header: { Text("Lane") } footer: {
+            Text("Free cancel until \(request.start.addingTimeInterval(-7200).cpTimeShort).")
+        }
     }
 
     @ViewBuilder private var kidsBody: some View {
         let blk = model.kidsBlocks(club: club, day: request.start.startOfAZDay).first { $0.index == request.block }
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Children").font(.subheadline.weight(.semibold)).padding(.bottom, 4)
+        if let blk {
+            Section { LabeledContent("Spots") { CapacityIndicator(left: blk.spotsLeft, capacity: blk.capacity, noun: "spots") } }
+        }
+        Section("Children") {
             ForEach(model.kidsEligible) { c in
                 Button { if chosenKids.contains(c.id) { chosenKids.remove(c.id) } else { chosenKids.insert(c.id) } } label: {
-                    HStack { Text("\(c.first), \(c.age)").foregroundStyle(Color.textPrimary); Spacer()
-                        Image(systemName: chosenKids.contains(c.id) ? "checkmark.circle.fill" : "circle").foregroundStyle(chosenKids.contains(c.id) ? Color.brandAccent : Color.borderStrong) }
-                    .frame(minHeight: 48).contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityAddTraits(chosenKids.contains(c.id) ? .isSelected : [])
-                Divider()
+                    HStack {
+                        Text("\(c.first), \(c.age)").foregroundStyle(.primary)
+                        Spacer()
+                        Image(systemName: chosenKids.contains(c.id) ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(chosenKids.contains(c.id) ? Color.accentColor : Color.secondary)
+                    }
+                    .frame(minHeight: 44).contentShape(Rectangle())
+                }
+                .buttonStyle(.plain).accessibilityAddTraits(chosenKids.contains(c.id) ? .isSelected : [])
             }
-            if model.kidsEligible.isEmpty { Text("No children aged 6 months to 12 years on your plan.").font(.subheadline).foregroundStyle(Color.textMuted) }
+            if model.kidsEligible.isEmpty { Text("No children aged 6 months to 12 years on your plan.").font(.subheadline).foregroundStyle(.secondary) }
         }
-        TextField("Allergies or notes (140 characters)", text: $note, axis: .vertical).textFieldStyle(.roundedBorder)
-            .onChange(of: note) { _, n in if n.count > 140 { note = String(n.prefix(140)) } }
-        if let blk { CapacityIndicator(left: blk.spotsLeft, capacity: blk.capacity, noun: "spots") }
-        Text("Up to 2 blocks per child a day.").font(.footnote).foregroundStyle(Color.textMuted)
-        Text("Check in at \(club.fullName) by \(request.start.addingTimeInterval(15 * 60).cpTime) or we release the block.").font(.footnote).foregroundStyle(Color.textMuted)
-        Text("Kids club has no strikes.").font(.footnote).foregroundStyle(Color.textMuted)
+        Section {
+            TextField("Allergies or notes (140 characters)", text: $note, axis: .vertical)
+                .onChange(of: note) { _, n in if n.count > 140 { note = String(n.prefix(140)) } }
+        } footer: {
+            Text("Up to 2 blocks per child a day. Check in at \(club.fullName) by \(request.start.addingTimeInterval(15 * 60).cpTimeShort) or we release the block. Kids club has no strikes.")
+        }
     }
 
-    private var reserveButton: some View {
+    private var kidsFull: Bool {
         let blk = model.kidsBlocks(club: club, day: request.start.startOfAZDay).first { $0.index == request.block }
-        let kidsFull = request.kind == .kidsClub && (blk?.spotsLeft ?? 1) == 0
-        let title: String = switch request.kind {
+        return request.kind == .kidsClub && (blk?.spotsLeft ?? 1) == 0
+    }
+
+    private var reserveTitle: String {
+        switch request.kind {
         case .court: court == 0 ? "Reserve court" : "Reserve Court \(court)"
         case .lane: lane == 0 ? "Reserve lane" : "Reserve Lane \(lane)"
         case .kidsClub: kidsFull ? "Join waitlist" : (chosenKids.isEmpty ? "Reserve spots" : "Reserve \(chosenKids.count) spot\(chosenKids.count == 1 ? "" : "s")")
         }
-        return Button(title) {
-            error = nil
-            let result: ReserveResult
-            switch request.kind {
-            case .court: result = model.reserveCourt(req, court: court == 0 ? nil : court)
-            case .lane: result = model.reserveLane(req, lane: lane == 0 ? nil : lane)
-            case .kidsClub:
-                let kids = model.kidsEligible.filter { chosenKids.contains($0.id) }
-                if kidsFull { if let b = model.joinKidsWaitlist(req, children: kids) { reserved = true; router.dismissSheet(); model.announceBooked(model.booking(b.id)) }; return }
-                result = model.reserveKids(req, children: kids, note: note)
-            }
-            switch result {
-            case .ok(let b): reserved = true; router.dismissSheet(); model.announceBooked(model.booking(b.id))
-            case .failed(let m): error = m
-            }
+    }
+
+    private func submit() {
+        error = nil
+        let result: ReserveResult
+        switch request.kind {
+        case .court: result = model.reserveCourt(req, court: court == 0 ? nil : court)
+        case .lane: result = model.reserveLane(req, lane: lane == 0 ? nil : lane)
+        case .kidsClub:
+            let kids = model.kidsEligible.filter { chosenKids.contains($0.id) }
+            if kidsFull { if let b = model.joinKidsWaitlist(req, children: kids) { reserved = true; router.dismissSheet(); model.announceBooked(model.booking(b.id)) }; return }
+            result = model.reserveKids(req, children: kids, note: note)
         }
-        .primaryAction(full: true)
-        .disabled(request.kind == .kidsClub && chosenKids.isEmpty)
+        switch result {
+        case .ok(let b): reserved = true; router.dismissSheet(); model.announceBooked(model.booking(b.id))
+        case .failed(let m): error = m
+        }
     }
 }
 
@@ -361,24 +407,17 @@ struct ClubSwitcherSheet: View {
                 ForEach(clubs) { c in
                     let reason = disabledReason(c)
                     Button { select(c) } label: {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(c.fullName).font(.body.weight(.semibold)).foregroundStyle(reason == nil ? Color.textPrimary : Color.textMuted)
-                                Text(reason ?? "\(c.kind) · \(String(format: "%.1f mi", c.distanceMiles))").font(.footnote).foregroundStyle(Color.textMuted)
-                            }
-                            Spacer()
-                            if isSelected(c) { Image(systemName: "checkmark").foregroundStyle(Color.brandAccent).fontWeight(.bold) }
-                        }
-                        .frame(minHeight: 48).contentShape(Rectangle())
+                        ClubCard(club: c, reading: model.busyness(c), now: model.now, variant: .listRow,
+                                 isHome: c.id == model.member.homeClubID, selected: isSelected(c))
                     }
                     .buttonStyle(.plain).disabled(reason != nil)
-                    .accessibilityAddTraits(isSelected(c) ? .isSelected : [])
                 }
             }
+            .listStyle(.insetGrouped)
             .searchable(text: $query, prompt: "Club or city")
             .navigationTitle(title).navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) }
+                ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } }
             }
         }
     }
@@ -415,20 +454,20 @@ struct HoursSheet: View {
             List {
                 Section("Hours") { HoursTable(club: club, now: model.now) }
                 Section {
-                    Text("6:00 am–8:00 pm").monospacedDigit()
+                    Text("6 am–8 pm").monospacedDigit()
                 } header: { Text("Desk staffed") } footer: { Text("Door readers work whenever the club is open.") }
                 if club.hasKids {
                     Section("Kids club") {
-                        Text("Mon–Sat 8:00–10:00 am, 10:00 am–12:00 pm, 4:00–6:00 pm, 6:00–8:00 pm")
-                        Text("Ages 6 months to 12 years.").foregroundStyle(Color.textMuted)
+                        Text("Mon–Sat 8–10 am, 10 am–12 pm, 4–6 pm, 6–8 pm")
+                        Text("Ages 6 months to 12 years.").foregroundStyle(.secondary)
                     }
                 }
                 if club.hasPool { Section("Pool") { Text("Closes 30 minutes before the club.") } }
-                Section("Holiday hours") { Text("Thanksgiving, Nov 26: 6:00 am–2:00 pm") }
+                Section("Holiday hours") { Text("Thanksgiving, Nov 26: 6 am–2 pm") }
                 Section { Button { openURL(URL(string: "tel:\(club.phone.filter(\.isNumber))")!) } label: { Label("Call the club · \(club.phone)", systemImage: "phone") } }
             }
             .navigationTitle(club.fullName).navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
@@ -443,20 +482,16 @@ struct InviteSheet: View {
     var body: some View {
         let link = "https://app.cactuspeak.example/invite/class/\(sessionID.suffix(24))"
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                if let s = model.session(sessionID) { Text("Invite a friend to \(s.name)").font(.title3.bold()) }
-                Text(link).font(.footnote.monospaced()).padding(12).frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: 10))
-                HStack {
-                    Button(copied ? "Copied" : "Copy link") { UIPasteboard.general.string = link; copied = true }.secondaryAction()
-                    ShareLink(item: link) { Label("Share", systemImage: "square.and.arrow.up") }.primaryAction()
-                }
-                Text("Guest passes left this month: \(model.guestPassesLeft)").font(.subheadline).foregroundStyle(Color.textMuted)
-                Spacer()
+            Form {
+                if let s = model.session(sessionID) { Section { Text("Invite a friend to \(s.name)").font(.headline) } }
+                Section {
+                    Text(link).codeFont(.footnote, weight: .regular).textSelection(.enabled)
+                    Button { UIPasteboard.general.string = link; copied = true } label: { Label(copied ? "Copied" : "Copy link", systemImage: "doc.on.doc") }
+                    ShareLink(item: link) { Label("Share", systemImage: "square.and.arrow.up") }
+                } footer: { Text("Guest passes left this month: \(model.guestPassesLeft)") }
             }
-            .padding(16)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .navigationTitle("Invite").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
@@ -482,7 +517,7 @@ struct FeedbackSheet: View {
             }
             .navigationTitle("Feedback").navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { router.dismissSheet() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Send") { model.giveFeedback(bookingID, choice ?? "Okay"); router.dismissSheet(); model.showToast("Thanks. Only the club sees this.") }.disabled(choice == nil)
                 }
@@ -491,26 +526,48 @@ struct FeedbackSheet: View {
     }
 }
 
-/// Inline single-choice list with a checkmark. Disabled rows say why.
+/// Single-choice rows with a checkmark, for use inside a `Section`. Disabled rows say why.
 struct ChoiceList: View {
     @Binding var selection: Int
     var options: [(Int, String, String?)]
     var body: some View {
-        VStack(spacing: 0) {
-            ForEach(options, id: \.0) { o in
-                let off = o.2 == "Taken" || o.2 == "Full"
-                Button { selection = o.0 } label: {
-                    HStack {
-                        Text(o.1).foregroundStyle(off ? Color.textMuted : Color.textPrimary)
-                        if let n = o.2 { Text(n).font(.footnote).foregroundStyle(Color.textMuted) }
-                        Spacer()
-                        if selection == o.0 { Image(systemName: "checkmark").foregroundStyle(Color.brandAccent).fontWeight(.bold) }
-                    }.frame(minHeight: 44).contentShape(Rectangle())
+        ForEach(options, id: \.0) { o in
+            let off = o.2 == "Taken" || o.2 == "Full"
+            Button { selection = o.0 } label: {
+                HStack {
+                    Text(o.1).foregroundStyle(off ? Color.secondary : Color.primary)
+                    if let n = o.2 { Text(n).font(.footnote).foregroundStyle(.secondary) }
+                    Spacer()
+                    if selection == o.0 { Image(systemName: "checkmark").foregroundStyle(Color.accentColor).fontWeight(.semibold) }
                 }
-                .buttonStyle(.plain).disabled(off)
-                .accessibilityAddTraits(selection == o.0 ? .isSelected : [])
-                Divider()
+                .frame(minHeight: 44).contentShape(Rectangle())
             }
+            .buttonStyle(.plain).disabled(off)
+            .accessibilityAddTraits(selection == o.0 ? .isSelected : [])
         }
+    }
+}
+
+
+/// The top of a booking sheet: the item's art tile, its name and one line of when and where. After the Apple Store
+/// checkout sheet, where the item leads and the facts follow in one group.
+struct SheetSummaryHeader<Art: View>: View {
+    var title: String
+    var line: String
+    @ViewBuilder var art: Art
+    @Environment(\.dynamicTypeSize) private var dts
+    var body: some View {
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                                              : AnyLayout(HStackLayout(spacing: 14))
+        layout {
+            art.frame(width: 56, height: 56).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.headline)
+                Text(line).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
     }
 }

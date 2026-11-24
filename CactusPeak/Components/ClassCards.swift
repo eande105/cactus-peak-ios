@@ -17,12 +17,14 @@ extension AppModel {
     func rowData(_ s: ClassSession) -> ClassRowData {
         ClassRowData(session: s, coach: coach(s.coachID), clubShort: club(s.clubID).shortName, left: spotsLeft(s),
                      waitlist: waitlistCount(s), state: state(for: s),
-                     crowd: CrowdText.usually(level: club(s.clubID).typicalLevel(at: s.start), at: s.start))
+                     // Name the class time, not the hour start: a 5:30 am class says "at 5:30 am".
+                     crowd: CrowdText.usually(level: club(s.clubID).typicalLevel(at: s.start)) + " at " + s.start.cpTimeShort)
     }
 }
 
-/// One schedule row: a 2-line timetable entry, about 68 pt. Time in Archivo, category stripe and symbol, coach and room,
-/// intensity ribs, spots and the booking button on the row.
+/// One schedule row, like a Fitness+ workout row. Leading: the class's crop graphic as a thumbnail, with the start
+/// time on it as a badge. Middle: the class name, then the coach and the length. Trailing: a small booking button
+/// with the spots caption under it. No chevron. The room, the crowd and the intensity live on the class screen.
 struct ClassRow: View {
     var data: ClassRowData
     var showClub = false
@@ -30,17 +32,16 @@ struct ClassRow: View {
     var onAction: () -> Void
     var onLeave: () -> Void = {}
     @Environment(\.dynamicTypeSize) private var dts
+    @ScaledMetric(relativeTo: .subheadline) private var thumbWidth: CGFloat = 92
 
     private var isPast: Bool { if case .started = data.state { return true } else { return false } }
 
     var body: some View {
         let s = data.session
-        let (clock, ampm) = s.start.cpClock
-        HStack(alignment: .center, spacing: 12) {
-            RoundedRectangle(cornerRadius: 2).fill(s.category.color).frame(width: 4).accessibilityHidden(true)
+        Group {
             if dts.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 6) {
-                    timeText(clock, ampm)
+                VStack(alignment: .leading, spacing: 8) {
+                    thumbnail(s)
                     titleLine(s)
                     detailLine(s)
                     capacity(s)
@@ -48,18 +49,13 @@ struct ClassRow: View {
                 }
             } else {
                 HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        if showDate { Text(s.start.cpFormat("EEE MMM d")).font(.caption2.weight(.semibold)).foregroundStyle(Color.textMuted) }
-                        timeText(clock, ampm)
-                        Text("\(s.durationMin) min").font(.caption).foregroundStyle(Color.textMuted)
-                    }
-                    .frame(width: 76, alignment: .leading)
+                    thumbnail(s)
                     VStack(alignment: .leading, spacing: 2) {
                         titleLine(s)
                         detailLine(s)
                     }
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel(a11yLabel(s, clock, ampm))
+                    .accessibilityLabel(a11yLabel(s))
                     Spacer(minLength: 4)
                     VStack(alignment: .trailing, spacing: 2) {
                         BookingStateButton(state: data.state, action: onAction, onLeave: onLeave)
@@ -68,57 +64,57 @@ struct ClassRow: View {
                 }
             }
         }
-        .padding(.vertical, 6)
-        .frame(minHeight: 64)
+        .padding(.vertical, 4)
+        .frame(minHeight: 56)
         .opacity(isPast ? 0.55 : 1)
         .accessibilityElement(children: .contain)
     }
 
-    private func timeText(_ clock: String, _ ampm: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 2) {
-            Text(clock).font(.archivoSemiBold(20, relativeTo: .title3)).monospacedDigit()
-            Text(ampm).font(.caption2.weight(.semibold)).foregroundStyle(Color.textMuted)
-        }
-        .lineLimit(1)
+    /// The 16:9 crop, with the start time (and the day, when rows span days) on a material badge.
+    private func thumbnail(_ s: ClassSession) -> some View {
+        Color.clear
+            .frame(width: thumbWidth, height: thumbWidth * 9 / 16)
+            .overlay { ClassGraphic(category: s.category, variant: .wide) }
+            .clipShape(.rect(cornerRadius: 10, style: .continuous))
+            .overlay(alignment: .bottomLeading) {
+                Text(showDate ? "\(s.start.cpWeekdayShort) \(s.start.cpTimeShort)" : s.start.cpTimeShort)
+                    .font(.caption2.weight(.bold)).monospacedDigit().lineLimit(1)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(4)
+            }
+            .accessibilityHidden(true)
     }
 
     private func titleLine(_ s: ClassSession) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: s.category.symbol).imageScale(.small).foregroundStyle(s.category.textColor).accessibilityHidden(true)
-            Text(s.name).font(.headline).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-        }
+        Text(s.name).font(.headline).lineLimit(2)
     }
 
+    /// One short line: the coach, then the club when rows mix clubs, otherwise the length.
     private func detailLine(_ s: ClassSession) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 6) {
-                Text("\(data.coach.shortName) · \(s.room)\(showClub ? " · \(data.clubShort)" : "")")
-                    .font(.subheadline).foregroundStyle(Color.textMuted).lineLimit(1)
-                RibMeter(value: s.intensity, tone: .category(s.category), size: .sm, peak: false)
-            }
-            Text(data.crowd).font(.caption).foregroundStyle(Color.textMuted).lineLimit(1)
-        }
+        Text("\(data.coach.shortName) · \(showClub ? data.clubShort : "\(s.durationMin) min")")
+            .font(.subheadline).foregroundStyle(Color.secondary).lineLimit(1)
     }
 
     @ViewBuilder private func capacity(_ s: ClassSession) -> some View {
         if case .booked = data.state { EmptyView() }
         else if case .restricted(.notOpen(let d)) = data.state {
-            Text("Opens \(d.cpWeekdayShort) \(d.cpTime)").font(.caption).foregroundStyle(Color.textMuted)
+            Text("Opens \(d.cpWeekdayShort) \(d.cpTimeShort)").font(.caption).foregroundStyle(Color.secondary)
         } else {
             let dropIn: Bool = { if case .dropIn = data.state { return true } else { return false } }()
             let low = data.left > 0 && data.left <= 5
             HStack(spacing: 3) {
                 if low { Image(systemName: "exclamationmark.triangle.fill").imageScale(.small).accessibilityHidden(true) }
-                Text(data.left == 0 ? (data.waitlist > 0 ? "Full · Waitlist \(data.waitlist)" : "Full")
-                     : (dropIn ? "Drop-in · \(data.left) left" : "\(data.left) \(data.left == 1 ? "spot" : "spots") left"))
+                Text(data.left == 0 ? (data.waitlist > 0 ? "\(data.waitlist) waiting" : "Full")
+                     : (dropIn ? "Drop-in · \(data.left) left" : "\(data.left) left"))
                     .contentTransition(.numericText())
             }
-            .font(.caption.weight(.medium)).foregroundStyle(low ? Color.statusWarning : Color.textMuted)
+            .countFont(.caption, weight: .medium).foregroundStyle(low ? Color.statusWarning : Color.secondary)
         }
     }
 
-    private func a11yLabel(_ s: ClassSession, _ clock: String, _ ampm: String) -> String {
-        "\(clock) \(ampm), \(s.durationMin) minutes. \(s.name). \(s.category.title). Intensity \(s.intensity) of 5. \(data.coach.shortName), \(s.room). "
+    private func a11yLabel(_ s: ClassSession) -> String {
+        "\(s.start.cpTimeShort), \(s.durationMin) minutes. \(s.name). \(s.category.title). Intensity \(s.intensity) of 5. \(data.coach.shortName), \(s.room). "
         + (data.left == 0 ? "Full" : "\(data.left) \(s.spotNoun) left")
     }
 }
@@ -130,69 +126,91 @@ struct ClassCompactCard: View {
     var body: some View {
         let s = data.session
         VStack(alignment: .leading, spacing: 6) {
-            Text(showDate ? s.start.cpFormat("EEE") + " " + s.start.cpTime : s.start.cpTime).font(.headline).monospacedDigit()
+            Text(showDate ? s.start.cpFormat("EEE") + " " + s.start.cpTimeShort : s.start.cpTimeShort).font(.headline).monospacedDigit()
             Text(s.name).font(.subheadline.weight(.semibold)).lineLimit(2).fixedSize(horizontal: false, vertical: true)
             CategoryBadge(category: s.category, compact: true)
             IntensityRibs(value: s.intensity, category: s.category)
-            Text(data.left == 0 ? "Full" : "\(data.left) \(s.spotNoun) left").font(.caption).foregroundStyle(data.left > 0 && data.left <= 5 ? Color.statusWarning : Color.textMuted)
+            Text(data.left == 0 ? "Full" : "\(data.left) \(s.spotNoun) left").font(.caption).foregroundStyle(data.left > 0 && data.left <= 5 ? Color.statusWarning : Color.secondary)
         }
         .frame(width: 168, alignment: .leading)
         .cardStyle(padding: 12)
-        .overlay(alignment: .top) { Rectangle().fill(s.category.color).frame(height: 4).clipShape(UnevenRoundedRectangle(topLeadingRadius: 14, topTrailingRadius: 14)) }
+        .overlay(alignment: .top) { Rectangle().fill(s.category.color).frame(height: 4).clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20)) }
         .accessibilityElement(children: .combine)
     }
 }
 
-/// 260 pt card for the "For you" strip.
+/// A class with its category graphic on top. It draws no card of its own: put it in a list row with
+/// `listRowInsets(EdgeInsets())`, so the row's background gives it the list's own card shape and corner radius.
 struct ClassFeatureCard: View {
     var data: ClassRowData
+    @Environment(\.dynamicTypeSize) private var dts
     var body: some View {
         let s = data.session
+        // At accessibility sizes the text wraps and the bottom line stacks, so nothing truncates.
+        let lines = dts.isAccessibilitySize ? nil : 1
+        let bottom = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
         VStack(alignment: .leading, spacing: 0) {
-            ClassGraphic(category: s.category)
-                .frame(height: 96)
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(s.start.cpWeekdayShort) \(s.start.cpTime)").font(.subheadline.weight(.semibold)).monospacedDigit().foregroundStyle(Color.textMuted)
-                Text(s.name).font(.headline).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                CategoryBadge(category: s.category, compact: true)
-                Text("\(data.coach.shortName) · \(data.clubShort)").font(.footnote).foregroundStyle(Color.textMuted)
-                Text(data.left == 0 ? "Full · Waitlist \(data.waitlist)" : "\(data.left) \(s.spotNoun) left")
-                    .font(.footnote.weight(.semibold)).foregroundStyle(data.left > 0 && data.left <= 5 ? Color.statusWarning : Color.textPrimary)
+            // A 2:1 band the full width of the card, with the crop composed for that ratio.
+            Color.clear
+                .aspectRatio(2, contentMode: .fit)
+                .frame(maxWidth: .infinity)
+                .overlay { ClassGraphic(category: s.category, variant: .card) }
+                .clipped()
+            // Name and coach on top; when and how many spots split to the two sides of the bottom line.
+            VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(s.name).font(.headline).lineLimit(lines)
+                    Text(data.coach.shortName).font(.subheadline).foregroundStyle(Color.secondary).lineLimit(lines)
+                }
+                bottom {
+                    Text("\(s.start.cpWeekdayShort) \(s.start.cpTimeShort)").font(.subheadline.weight(.semibold)).monospacedDigit()
+                    if !dts.isAccessibilitySize { Spacer(minLength: 8) }
+                    Text(data.left == 0 ? "Full" : "\(data.left) left")
+                        .countFont(.footnote, weight: .medium).foregroundStyle(data.left > 0 && data.left <= 5 ? Color.statusWarning : Color.secondary)
+                }
             }
-            .padding(12)
+            .padding(.horizontal, 20).padding(.vertical, 14)
         }
-        .frame(width: 252)
-        .background(Color.surface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.hairline, lineWidth: 1))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }
 }
 
-/// A booking row (class, court, lane, kids club, PT) in lists.
-struct BookingRow: View {
+/// A booking row (class, court, lane, kids club, PT) in lists, as in the Coming up section on Today: the booking's
+/// tile, its name, one line of when and where, and a trailing item (a pill, a button or the outcome).
+struct BookingListRow<Trailing: View>: View {
     var booking: Booking
-    var clubShort: String
-    var statusText: String?
-    var holdAction: (() -> Void)?
+    var coach: Coach?
+    /// When and where, already joined: "4 pm · Studio A", "Tue, Oct 20 · 6 am".
+    var line: String
+    @ViewBuilder var trailing: Trailing
     @Environment(\.dynamicTypeSize) private var dts
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            RoundedRectangle(cornerRadius: 2).fill(booking.category.color).frame(width: 4).accessibilityHidden(true)
-            let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
-            layout {
-                Text(booking.start.cpTime).font(.headline).monospacedDigit().frame(minWidth: dts.isAccessibilitySize ? 0 : 78, alignment: .leading)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(booking.title).font(.headline).fixedSize(horizontal: false, vertical: true)
-                    Text("\(clubShort)\(booking.detail.isEmpty ? "" : " · \(booking.detail)")").font(.footnote).foregroundStyle(Color.textMuted)
-                    if let t = statusText { Text(t).font(.footnote.weight(.semibold)).foregroundStyle(Color.textPrimary) }
+        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            BookingTile(booking: booking, coach: coach, size: 48)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(booking.title).font(.headline).fixedSize(horizontal: false, vertical: true)
+                if !line.isEmpty {
+                    Text(line).font(.subheadline).foregroundStyle(.secondary).monospacedDigit()
+                        .lineLimit(dts.isAccessibilitySize ? nil : 1)
                 }
-                if !dts.isAccessibilitySize { Spacer(minLength: 0) }
             }
+            if !dts.isAccessibilitySize { Spacer(minLength: 8) }
+            trailing
         }
-        .frame(minHeight: 56)
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
+        .frame(minHeight: 52)
+    }
+}
+
+extension Booking {
+    /// Where, for a row's second line: the room, court, lane or children. A training session's title names the
+    /// coach already, so it adds nothing. The club shows only when the list is not about that club.
+    func placeText(clubShort: String) -> String {
+        let place = kind == .pt ? "" : detail
+        return [place, clubShort].filter { !$0.isEmpty }.joined(separator: " · ")
     }
 }
 
@@ -209,7 +227,7 @@ struct CoachCard: View {
                 CoachImage(name: coach.fullName, category: coach.category, size: 56)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(coach.fullName).font(.headline)
-                    Text(coach.credential).font(.subheadline).foregroundStyle(Color.textMuted)
+                    Text(coach.credential).font(.subheadline).foregroundStyle(Color.secondary)
                 }
             }
             .frame(minHeight: 56)
@@ -218,7 +236,7 @@ struct CoachCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 CoachImage(name: coach.fullName, category: coach.category, size: 64)
                 Text(coach.shortName).font(.headline)
-                Text(coach.credential).font(.footnote).foregroundStyle(Color.textMuted).lineLimit(2)
+                Text(coach.credential).font(.footnote).foregroundStyle(Color.secondary).lineLimit(2)
             }
             .frame(width: 150, alignment: .leading)
             .cardStyle(padding: 12)

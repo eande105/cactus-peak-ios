@@ -8,7 +8,7 @@ enum ClassActions {
         case .book, .dropIn:
             switch model.book(s) {
             case .ok(let b): model.announceBooked(model.booking(b.id))
-            case .clash(let c): router.clash = ClashPrompt(id: s.id, existing: c.title, existingTime: c.start.cpTime)
+            case .clash(let c): router.clash = ClashPrompt(id: s.id, existing: c.title, existingTime: c.start.cpTimeShort)
             case .rejected(let m): model.showToast(m)
             }
         case .waitlist: router.present(.waitlist(s.id))

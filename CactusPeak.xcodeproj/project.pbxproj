@@ -22,15 +22,18 @@
 		2AB193B992F56784089F7DCD /* ClassActions.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA25683F5D15C0E5A707696 /* ClassActions.swift */; };
 		2E265C6533B46511EC7AB8CD /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CAA88F32E5063845B04A88C /* Models.swift */; };
 		2F0C9B83E721680B3A34FAC6 /* AppModel+Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41B701D555F8033EC3B07D9D /* AppModel+Sync.swift */; };
+		2FE73FBAC4E20E90E1126C6B /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BECE532420A7E4EF6E14CF /* Typography.swift */; };
 		300ACB4DDB45B27F903B76DC /* Archivo-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4E024D4598FB9C11B1A01E94 /* Archivo-VF.ttf */; };
 		3033FA703E20E65A2AC4337C /* SessionBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38A8390D1F30069E72FA0B41 /* SessionBaseline.swift */; };
 		356D6B90F373F4FB5CDD39E5 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF35E0E5C76256A0E00FFDF2 /* LiveActivityManager.swift */; };
 		404F939B6C454994928F0618 /* BookingButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EE9AEE193B4D6E4CB8980F6 /* BookingButton.swift */; };
+		40E2F0FFC80E127DD64F6CA2 /* BookControlBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABEEFC43AB822BE8A6D5487F /* BookControlBar.swift */; };
 		43D8DE089B64C3323155FAEA /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E43A6191C992DDBA192DEEE1 /* TodayView.swift */; };
 		46BCCEC63A0584E487AE60BC /* Archivo-VF.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 712E4079BDD071F33DA68666 /* Archivo-VF.ttf */; };
 		46FB2B02B6248069A7CDAEBF /* PassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7006C6D3C421E71E004CAAE2 /* PassView.swift */; };
 		4BCC9CB6BFDC4A6E68D1BC75 /* Fixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD1F7D747D23BDF73C469B38 /* Fixtures.swift */; };
 		51E9DA49435EB4BC35F5C3B5 /* AppModel+Reserve.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3761F910B7581C6ACA2EE71E /* AppModel+Reserve.swift */; };
+		5AE63F72EAAC5D635A29B6E2 /* Typography.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8BECE532420A7E4EF6E14CF /* Typography.swift */; };
 		63302AA7D080C9CAFA255A4C /* Brand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D1197CADACC2E621181DCBB /* Brand.swift */; };
 		66B3F9E86B5095F8AC84780C /* BookingError.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5669508A4C072813EB072F0A /* BookingError.swift */; };
 		69A0AAC740AC9D91AAF378D4 /* BrandGraphics.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 22F59FA10A6BC0F984BC1350 /* BrandGraphics.xcassets */; };
@@ -38,6 +41,7 @@
 		7531F9DE8D53F947B36BBAB1 /* Sheets2.swift in Sources */ = {isa = PBXBuildFile; fileRef = D028983ECBCE53F42252D0DF /* Sheets2.swift */; };
 		75E6FD271855A9B5762EF49F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1849A8CEB83AE05FCD3E140B /* Assets.xcassets */; };
 		77E4F8E4BE9408D189B00081 /* Occupancy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D6008A3FE9F615EB187FF4F /* Occupancy.swift */; };
+		7CB74724DD091C838D647101 /* DetailPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33645768D5856E25CB0F1031 /* DetailPage.swift */; };
 		7FEAEF2C6DA930889F29E7F4 /* BrandGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FE5F7560FF2E3C966965 /* BrandGraphics.swift */; };
 		800DFBAEFE8F1875FE836EF7 /* ProgressScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E990296545F761211D4721FD /* ProgressScreen.swift */; };
 		87AAF901D7688AD5947E13B6 /* Badges.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14EE804788FE0B895AA350A4 /* Badges.swift */; };
@@ -60,6 +64,7 @@
 		C6A0B46F0C514664488179F8 /* ClassDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3F12E133AEB045EA0795C6C /* ClassDetailView.swift */; };
 		CA9E7AED91E62E7580DEAF45 /* BackendTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF19050D2F82343EBF2E860B /* BackendTests.swift */; };
 		CB5FF471B0B3ACCB53E0698C /* CopyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DDFDCD9855814732C51FCFA3 /* CopyTests.swift */; };
+		CCC537810E064B85ED8621D8 /* OverviewTiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9772AF5484E4262489FD6A6 /* OverviewTiles.swift */; };
 		CE580F74D50BA33B4275DF62 /* CatalogMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510C847DD88C9BC6EF585254 /* CatalogMapping.swift */; };
 		CECE7BA4DE6ECE8BD3DE02EC /* Backend.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB529734CE2B438E7F35C509 /* Backend.swift */; };
 		CEF348D682FC79BED9E2B988 /* HouseholdMapping.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107C29D913272D88FD70E15C /* HouseholdMapping.swift */; };
@@ -70,9 +75,11 @@
 		E4711CFDCDB4AA9788822249 /* Rows.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3282B30450AE2C1A13358C62 /* Rows.swift */; };
 		E4D31CE1771368B32CEE7EBC /* BookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99D025A7197DFF3209F0E8F2 /* BookView.swift */; };
 		E5D9613DAC2F95762B885449 /* PlatformViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B54B4F6902BA203EAD104F1B /* PlatformViews.swift */; };
+		E61756A93CB22FE8165AF348 /* DayCrowdSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9172676A49703071DBF60CE2 /* DayCrowdSection.swift */; };
 		E748004FFCFFD0E07880FF03 /* BrandGraphics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA25FE5F7560FF2E3C966965 /* BrandGraphics.swift */; };
 		E8D018C19CEF74C57676A93E /* Style.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98702C5A5BAEBAEDDB9AA1DD /* Style.swift */; };
 		EA6729344A7B723DFD4DE1AF /* ClubAreaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BE2A999898C0959278BDD9 /* ClubAreaTests.swift */; };
+		EDE9202411A8FE56D3889A0A /* PoolConditions.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2085C3D2E69C7F29C451D50 /* PoolConditions.swift */; };
 		F13E54B231DFC6459A34634F /* YouViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC4CE85263BA117FDEFC06E0 /* YouViews.swift */; };
 		F1CE7AEAEA1910B002DB217D /* CactusPeakWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 9A0163BB0104A00732F80AAB /* CactusPeakWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F407961B8D3A89A4BC38F286 /* MyBookingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A71CA5524EFC3A805AF05E1E /* MyBookingsView.swift */; };
@@ -124,6 +131,7 @@
 		25E604C476DD07C762A29E38 /* Photo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Photo.swift; sourceTree = "<group>"; };
 		31816574191EF983E9136B65 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		3282B30450AE2C1A13358C62 /* Rows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rows.swift; sourceTree = "<group>"; };
+		33645768D5856E25CB0F1031 /* DetailPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailPage.swift; sourceTree = "<group>"; };
 		337560E152249E10065496D7 /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Colors.xcassets; sourceTree = "<group>"; };
 		33E0F6025DFA4E2EDAB73C1F /* WelcomeFlow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeFlow.swift; sourceTree = "<group>"; };
 		3761F910B7581C6ACA2EE71E /* AppModel+Reserve.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+Reserve.swift"; sourceTree = "<group>"; };
@@ -150,12 +158,14 @@
 		82D3F6F7858D798F4155C11C /* CactusPeakApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CactusPeakApp.swift; sourceTree = "<group>"; };
 		8517ED40E88103635923639A /* BackendAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendAPI.swift; sourceTree = "<group>"; };
 		8CAA88F32E5063845B04A88C /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		9172676A49703071DBF60CE2 /* DayCrowdSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayCrowdSection.swift; sourceTree = "<group>"; };
 		98702C5A5BAEBAEDDB9AA1DD /* Style.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Style.swift; sourceTree = "<group>"; };
 		99B9CB8B8934C30BBC295E03 /* PassViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PassViews.swift; sourceTree = "<group>"; };
 		99D025A7197DFF3209F0E8F2 /* BookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookView.swift; sourceTree = "<group>"; };
 		9A0163BB0104A00732F80AAB /* CactusPeakWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CactusPeakWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A3F12E133AEB045EA0795C6C /* ClassDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassDetailView.swift; sourceTree = "<group>"; };
 		A71CA5524EFC3A805AF05E1E /* MyBookingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyBookingsView.swift; sourceTree = "<group>"; };
+		ABEEFC43AB822BE8A6D5487F /* BookControlBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BookControlBar.swift; sourceTree = "<group>"; };
 		AD1F7D747D23BDF73C469B38 /* Fixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Fixtures.swift; sourceTree = "<group>"; };
 		B54B4F6902BA203EAD104F1B /* PlatformViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlatformViews.swift; sourceTree = "<group>"; };
 		B9C860DBB36996DFA32CD7B3 /* AppModel+Booking.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppModel+Booking.swift"; sourceTree = "<group>"; };
@@ -169,6 +179,7 @@
 		D028983ECBCE53F42252D0DF /* Sheets2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets2.swift; sourceTree = "<group>"; };
 		D48510883BEF63E109BDF098 /* AppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntents.swift; sourceTree = "<group>"; };
 		D51D94496A77D0759F45CFC5 /* CactusPeak.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CactusPeak.entitlements; sourceTree = "<group>"; };
+		D9772AF5484E4262489FD6A6 /* OverviewTiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewTiles.swift; sourceTree = "<group>"; };
 		D9C1F610119A0C8028DFE30D /* ClubViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClubViews.swift; sourceTree = "<group>"; };
 		DC383C51A874792FB17016E4 /* NotificationSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationSupport.swift; sourceTree = "<group>"; };
 		DDFDCD9855814732C51FCFA3 /* CopyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopyTests.swift; sourceTree = "<group>"; };
@@ -180,7 +191,9 @@
 		E990296545F761211D4721FD /* ProgressScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressScreen.swift; sourceTree = "<group>"; };
 		F0F2CA2E4E0D4C568E3DFA8C /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		F15685020309F84C57783AD3 /* Schedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Schedule.swift; sourceTree = "<group>"; };
+		F2085C3D2E69C7F29C451D50 /* PoolConditions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoolConditions.swift; sourceTree = "<group>"; };
 		F66AA7DD560F55A27E3FC9B0 /* Sheets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sheets.swift; sourceTree = "<group>"; };
+		F8BECE532420A7E4EF6E14CF /* Typography.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Typography.swift; sourceTree = "<group>"; };
 		F9125E8B47A143809AF2E297 /* DebugLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugLaunch.swift; sourceTree = "<group>"; };
 		FB529734CE2B438E7F35C509 /* Backend.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Backend.swift; sourceTree = "<group>"; };
 		FBA25683F5D15C0E5A707696 /* ClassActions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClassActions.swift; sourceTree = "<group>"; };
@@ -209,6 +222,7 @@
 				3763CB9D19E2B1D9F2CFAB19 /* ClubSpaces.swift */,
 				8CAA88F32E5063845B04A88C /* Models.swift */,
 				6D6008A3FE9F615EB187FF4F /* Occupancy.swift */,
+				F2085C3D2E69C7F29C451D50 /* PoolConditions.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -262,6 +276,7 @@
 				22F59FA10A6BC0F984BC1350 /* BrandGraphics.xcassets */,
 				337560E152249E10065496D7 /* Colors.xcassets */,
 				DF20A5F2D7B0AF5D75B09396 /* Snapshot.swift */,
+				F8BECE532420A7E4EF6E14CF /* Typography.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -301,10 +316,14 @@
 			isa = PBXGroup;
 			children = (
 				14EE804788FE0B895AA350A4 /* Badges.swift */,
+				ABEEFC43AB822BE8A6D5487F /* BookControlBar.swift */,
 				1EE9AEE193B4D6E4CB8980F6 /* BookingButton.swift */,
 				398C08E6AB822B1FE410A311 /* ClassCards.swift */,
 				D9C1F610119A0C8028DFE30D /* ClubViews.swift */,
+				9172676A49703071DBF60CE2 /* DayCrowdSection.swift */,
+				33645768D5856E25CB0F1031 /* DetailPage.swift */,
 				5CD1FD4BED61786B6B0D1039 /* Meters.swift */,
+				D9772AF5484E4262489FD6A6 /* OverviewTiles.swift */,
 				99B9CB8B8934C30BBC295E03 /* PassViews.swift */,
 				25E604C476DD07C762A29E38 /* Photo.swift */,
 				F15685020309F84C57783AD3 /* Schedule.swift */,
@@ -439,6 +458,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2D990E14DDBAC693323746A0 /* Build configuration list for PBXNativeTarget "CactusPeak" */;
 			buildPhases = (
+				83027442AACC4A2AED723F8D /* Check type roles */,
 				71EE58E2005817DC09642F09 /* Sources */,
 				B1F8D19158F96C58076BD70A /* Resources */,
 				3A9E6BBE632A5605176DE082 /* Frameworks */,
@@ -525,6 +545,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		83027442AACC4A2AED723F8D /* Check type roles */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Check type roles";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "/usr/bin/python3 \"$SRCROOT/tools/check-type.py\" \"$SRCROOT\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		0EC1334A109FA46F11899FFF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -546,6 +588,7 @@
 				7FEAEF2C6DA930889F29E7F4 /* BrandGraphics.swift in Sources */,
 				729016FE258540638F69E63B /* CactusPeakWidgets.swift in Sources */,
 				B32A9E04C48D7E5957580C65 /* Snapshot.swift in Sources */,
+				5AE63F72EAAC5D635A29B6E2 /* Typography.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -563,6 +606,7 @@
 				CECE7BA4DE6ECE8BD3DE02EC /* Backend.swift in Sources */,
 				1B03F8A492FCDC5B67F5E32C /* BackendAPI.swift in Sources */,
 				87AAF901D7688AD5947E13B6 /* Badges.swift in Sources */,
+				40E2F0FFC80E127DD64F6CA2 /* BookControlBar.swift in Sources */,
 				E4D31CE1771368B32CEE7EBC /* BookView.swift in Sources */,
 				404F939B6C454994928F0618 /* BookingButton.swift in Sources */,
 				66B3F9E86B5095F8AC84780C /* BookingError.swift in Sources */,
@@ -577,7 +621,9 @@
 				D7BBB563FF3842DCEF22CBFF /* ClubSpaces.swift in Sources */,
 				C25BF053458147729DD686CC /* ClubViews.swift in Sources */,
 				1041FCE3C3584D3B15CAEE01 /* ClubsView.swift in Sources */,
+				E61756A93CB22FE8165AF348 /* DayCrowdSection.swift in Sources */,
 				01ED14CA10FD381A8B5F6017 /* DebugLaunch.swift in Sources */,
+				7CB74724DD091C838D647101 /* DetailPage.swift in Sources */,
 				0F86AD1B575B1B5A8930493B /* FamilyViews.swift in Sources */,
 				CEF348D682FC79BED9E2B988 /* HouseholdMapping.swift in Sources */,
 				356D6B90F373F4FB5CDD39E5 /* LiveActivityManager.swift in Sources */,
@@ -587,10 +633,12 @@
 				F407961B8D3A89A4BC38F286 /* MyBookingsView.swift in Sources */,
 				AA89C0D8E151ADC710C9FF4D /* NotificationSupport.swift in Sources */,
 				77E4F8E4BE9408D189B00081 /* Occupancy.swift in Sources */,
+				CCC537810E064B85ED8621D8 /* OverviewTiles.swift in Sources */,
 				46FB2B02B6248069A7CDAEBF /* PassView.swift in Sources */,
 				97AF083064A92CEE0916E984 /* PassViews.swift in Sources */,
 				0B1375DB5A86133EA75301A6 /* Photo.swift in Sources */,
 				E5D9613DAC2F95762B885449 /* PlatformViews.swift in Sources */,
+				EDE9202411A8FE56D3889A0A /* PoolConditions.swift in Sources */,
 				800DFBAEFE8F1875FE836EF7 /* ProgressScreen.swift in Sources */,
 				AF0174BEC57063C749DC27BA /* RootView.swift in Sources */,
 				E4711CFDCDB4AA9788822249 /* Rows.swift in Sources */,
@@ -604,6 +652,7 @@
 				E8D018C19CEF74C57676A93E /* Style.swift in Sources */,
 				D191E69B9833C88B71165478 /* SuccessView.swift in Sources */,
 				43D8DE089B64C3323155FAEA /* TodayView.swift in Sources */,
+				2FE73FBAC4E20E90E1126C6B /* Typography.swift in Sources */,
 				E0FF32ABA495834BA1DB615F /* WelcomeFlow.swift in Sources */,
 				F13E54B231DFC6459A34634F /* YouViews.swift in Sources */,
 			);
@@ -632,6 +681,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = CactusPeak/CactusPeak.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = CactusPeak/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -667,6 +717,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = CactusPeak/CactusPeak.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = CactusPeak/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

@@ -29,7 +29,7 @@ struct BusynessMeter: View {
     private var a11y: String {
         if reading.closed { return "Closed. Opens \(reading.opensText)" }
         if reading.stale { return "Crowd level unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) minutes ago." }
-        return "Crowd level \(reading.word), \(reading.level) of 5. Updated \(reading.updatedAt.cpTime)"
+        return "Crowd level \(reading.word), \(reading.level) of 5. Updated \(reading.updatedAt.cpTimeShort)"
     }
 
     var body: some View {
@@ -38,20 +38,20 @@ struct BusynessMeter: View {
             case .inline:
                 HStack(spacing: 6) {
                     if !reading.closed { RibMeter(value: reading.level, tone: reading.tone, size: .sm, peak: false, unavailable: unavailable) }
-                    Text(valueText).font(.footnote.weight(.semibold)).foregroundStyle(Color.textPrimary)
+                    Text(valueText).font(.footnote.weight(.semibold)).foregroundStyle(Color.primary)
                 }
             case .compact:
                 HStack(spacing: 6) {
                     if !reading.closed { RibMeter(value: reading.level, tone: reading.tone, size: .sm, unavailable: unavailable) }
-                    Text(reading.closed ? "Closed" : (unavailable ? "Unavailable" : reading.word)).font(.caption.weight(.medium)).foregroundStyle(Color.textMuted).lineLimit(1).fixedSize()
+                    Text(reading.closed ? "Closed" : (unavailable ? "Unavailable" : reading.word)).font(.caption.weight(.medium)).foregroundStyle(Color.secondary).lineLimit(1).fixedSize()
                 }
             case .card:
                 HStack(alignment: .center, spacing: 14) {
                     if !reading.closed { RibMeter(value: reading.level, tone: reading.tone, size: .lg, unavailable: unavailable) }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(reading.closed || unavailable ? valueText : "\(reading.word) now").font(.headline)
-                        Text(unavailable ? "Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTime)")
-                            .font(.footnote).foregroundStyle(Color.textMuted)
+                        Text(unavailable ? "Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTimeShort)")
+                            .font(.footnote).foregroundStyle(Color.secondary)
                     }
                 }
             case .hero:
@@ -59,13 +59,13 @@ struct BusynessMeter: View {
                     if !reading.closed { RibMeter(value: reading.level, tone: reading.tone, size: .xl, unavailable: unavailable) }
                     VStack(alignment: .leading, spacing: 2) {
                         Text(reading.closed || unavailable ? valueText : "\(reading.word) now")
-                            .font(.archivoExtraBold(26, relativeTo: .title)).foregroundStyle(Color.textPrimary).fixedSize(horizontal: false, vertical: true)
+                            .brandFont(.numeral(.large)).foregroundStyle(Color.primary).fixedSize(horizontal: false, vertical: true)
                         if !reading.closed && !unavailable {
                             Text(reading.level == reading.usual ? "About usual" : (reading.level > reading.usual ? "Busier than usual" : "Quieter than usual"))
-                                .font(.subheadline.weight(.medium)).foregroundStyle(Color.textMuted)
+                                .font(.subheadline.weight(.medium)).foregroundStyle(Color.secondary)
                         }
-                        Text(unavailable ? "Crowd level unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTime)")
-                            .font(.caption).foregroundStyle(Color.textMuted)
+                        Text(unavailable ? "Crowd level unavailable. Last update \(Int(now.timeIntervalSince(reading.updatedAt) / 60)) min ago." : "Updated \(reading.updatedAt.cpTimeShort)")
+                            .font(.caption).foregroundStyle(Color.secondary)
                     }
                 }
             }
@@ -78,33 +78,25 @@ struct BusynessMeter: View {
 
 // MARK: - Progress ribs (weekly visit goal)
 
+/// Visits this week on the five ribs, with a tick under the goal rib. The goal is 1 to 5 visits, so each rib is one
+/// visit. The ribs are copper, and turn green when the goal is met. The caller shows the numbers; this is the meter only.
 struct ProgressRibs: View {
     var value: Int
     var goal: Int
-    var hero = false
+    var size: RibSize = .xl
     var body: some View {
-        let met = value >= goal
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .bottom, spacing: 14) {
-                VStack(spacing: 4) {
-                    RibMeter(value: min(5, value), tone: met ? .success : .brand, size: hero ? .lg : .md)
-                    // tick under the goal rib
-                    GeometryReader { g in
-                        let step = g.size.width / 5
-                        Image(systemName: "arrowtriangle.up.fill").font(.system(size: 8)).foregroundStyle(Color.textMuted)
-                            .position(x: step * (CGFloat(min(goal, 5)) - 0.5), y: 5)
-                    }
-                    .frame(height: 10)
-                }
-                .fixedSize()
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("\(value) of \(goal) visits").font(.archivoBold(hero ? 24 : 18, relativeTo: .title2)).monospacedDigit()
-                    Text(met ? "Goal met this week." : "\(goal - value) more to reach your goal.").font(.subheadline).foregroundStyle(Color.textMuted)
-                }
+        VStack(spacing: 4) {
+            RibMeter(value: min(5, value), tone: value >= goal ? .success : .accent, size: size)
+            GeometryReader { g in
+                let step = g.size.width / 5
+                Image(systemName: "arrowtriangle.up.fill").symbolFont(.system(size: 9)).foregroundStyle(Color.secondary)
+                    .position(x: step * (CGFloat(min(goal, 5)) - 0.5), y: 5)
             }
+            .frame(height: 10)
         }
+        .fixedSize()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value) of \(goal) visits this week. \(met ? "Goal met." : "\(goal - value) more to reach your goal.")")
+        .accessibilityLabel("\(value) of \(goal) visits this week")
     }
 }
 

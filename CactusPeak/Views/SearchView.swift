@@ -48,7 +48,7 @@ struct SearchView: View {
             if !model.recentSearches.isEmpty {
                 Section("Recent") {
                     ForEach(model.recentSearches.prefix(8), id: \.self) { r in
-                        Button { text = r } label: { Label(r, systemImage: "clock.arrow.circlepath").foregroundStyle(Color.textPrimary).frame(minHeight: 44) }.buttonStyle(.plain)
+                        Button { text = r } label: { Label(r, systemImage: "clock.arrow.circlepath").foregroundStyle(.primary).frame(minHeight: 44) }.buttonStyle(.plain)
                     }
                 }
             }
@@ -58,15 +58,15 @@ struct SearchView: View {
             }
             Section("Browse classes") {
                 ForEach(ClassCategory.allCases) { c in
-                    Button { tokens = [.category(c)] } label: { HStack { CategoryBadge(category: c); Spacer(); Image(systemName: "chevron.right").font(.footnote).foregroundStyle(Color.textMuted) }.frame(minHeight: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
+                    Button { tokens = [.category(c)] } label: { Label { Text(c.title).foregroundStyle(.primary) } icon: { Image(systemName: c.symbol).foregroundStyle(c.textColor) }.frame(minHeight: 44).contentShape(Rectangle()) }.buttonStyle(.plain)
                 }
             }
             Section("Clubs and coaches") {
-                Button { scope = .clubs; text = "Mesa" } label: { Label("Clubs", systemImage: "mappin.and.ellipse").frame(minHeight: 44) }.buttonStyle(.plain)
-                Button { scope = .coaches; text = "a" } label: { Label("Coaches", systemImage: "person.2").frame(minHeight: 44) }.buttonStyle(.plain)
+                Button { scope = .clubs; text = "Mesa" } label: { Label { Text("Clubs").foregroundStyle(.primary) } icon: { Image(systemName: "mappin.and.ellipse").foregroundStyle(.secondary) }.frame(minHeight: 44) }.buttonStyle(.plain)
+                Button { scope = .coaches; text = "a" } label: { Label { Text("Coaches").foregroundStyle(.primary) } icon: { Image(systemName: "person.2").foregroundStyle(.secondary) }.frame(minHeight: 44) }.buttonStyle(.plain)
             }
         }
-        .listStyle(.insetGrouped).scrollContentBackground(.hidden)
+        .listStyle(.insetGrouped)
     }
 
     // MARK: Results
@@ -90,10 +90,14 @@ struct SearchView: View {
         let classes = classHits, clubs = clubHits, coaches = coachHits, helps = helpHits
         let empty = (scope == .all ? classes.isEmpty && clubs.isEmpty && coaches.isEmpty && helps.isEmpty : (scope == .classes ? classes.isEmpty : scope == .clubs ? clubs.isEmpty : scope == .coaches ? coaches.isEmpty : helps.isEmpty))
         if empty {
-            ContentUnavailableView {
-                Label("No results for \"\(debounced)\"", systemImage: "magnifyingglass")
-            } description: { Text("Check the spelling or try a different search.") } actions: {
-                if !tokens.isEmpty { Button("Clear filters") { tokens = [] }.primaryAction() }
+            if tokens.isEmpty {
+                ContentUnavailableView.search(text: debounced)
+            } else {
+                ContentUnavailableView {
+                    Label("No results for \"\(debounced)\"", systemImage: "magnifyingglass")
+                } description: { Text("Check the spelling or try a different search.") } actions: {
+                    Button("Clear filters") { tokens = [] }.primaryAction()
+                }
             }
         } else {
             List {
@@ -105,6 +109,7 @@ struct SearchView: View {
                                 NavigationLink(value: AppRoute.classSession(s.id)) {
                                     ClassRow(data: model.rowData(s), showClub: true, onAction: { ClassActions.primary(s, model: model, router: router) })
                                 }
+                                .navigationLinkIndicatorVisibility(.hidden)
                             }
                         }
                     }
@@ -117,10 +122,10 @@ struct SearchView: View {
                     Section("Coaches") { ForEach(coaches) { c in NavigationLink(value: AppRoute.coach(c.id)) { CoachCard(coach: c) } } }
                 }
                 if scope == .all || scope == .help, !helps.isEmpty {
-                    Section("Help") { ForEach(helps, id: \.0) { h in Link(destination: URL(string: "https://app.cactuspeak.example/help")!) { Label(h.0, systemImage: "questionmark.circle").frame(minHeight: 44) } } }
+                    Section("Help") { ForEach(helps, id: \.0) { h in Link(destination: URL(string: "https://app.cactuspeak.example/help")!) { Label { Text(h.0).foregroundStyle(.primary) } icon: { Image(systemName: "questionmark.circle").foregroundStyle(.secondary) }.frame(minHeight: 44) } } }
                 }
             }
-            .listStyle(.insetGrouped).scrollContentBackground(.hidden)
+            .listStyle(.insetGrouped)
             .onChange(of: debounced) { _, _ in AccessibilityNotification.Announcement("\(classes.count + clubs.count + coaches.count) results").post() }
         }
     }

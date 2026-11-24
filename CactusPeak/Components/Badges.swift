@@ -52,7 +52,7 @@ struct IntensityRibs: View {
             if !dts.isAccessibilitySize { RibMeter(value: value, tone: category.map { .category($0) } ?? .neutral, size: size, peak: false) }
             if showWord || dts.isAccessibilitySize {
                 Text(dts.isAccessibilitySize ? "Intensity \(value) of 5 · \(Intensity.word(value))" : Intensity.word(value))
-                    .font(.caption.weight(.medium)).foregroundStyle(Color.textMuted)
+                    .font(.caption.weight(.medium)).foregroundStyle(Color.secondary)
             }
         }
         .accessibilityElement(children: .ignore)
@@ -75,21 +75,21 @@ struct CapacityIndicator: View {
         let filled = Int((Double(capacity - left) / Double(max(capacity, 1)) * 5).rounded(.up))
         HStack(spacing: 6) {
             if large {
-                Text("\(left)").font(.archivoExtraBold(28, relativeTo: .title)).monospacedDigit()
-                    .foregroundStyle(left == 0 ? Color.textMuted : (low ? Color.statusWarning : Color.textPrimary))
+                Text("\(left)").brandFont(.numeral(.large))
+                    .foregroundStyle(left == 0 ? Color.secondary : (low ? Color.statusWarning : Color.primary))
             } else {
                 RibMeter(value: min(5, left == 0 ? 5 : filled), tone: low ? .warning : .neutral, size: .sm, peak: false)
             }
             VStack(alignment: .leading, spacing: 0) {
                 if left == 0 {
-                    Text(waitlist > 0 ? "Full · Waitlist \(waitlist)" : "Full").font(large ? .subheadline : .footnote.weight(.medium)).foregroundStyle(Color.textMuted)
+                    Text(waitlist > 0 ? "Full · Waitlist \(waitlist)" : "Full").font(large ? .subheadline : .footnote.weight(.medium)).foregroundStyle(Color.secondary)
                 } else {
                     HStack(spacing: 3) {
                         if low { Image(systemName: "exclamationmark.triangle.fill").imageScale(.small).accessibilityHidden(true) }
                         Text(dropIn ? "Drop-in · \(left) \(left == 1 ? String(noun.dropLast()) : noun) left" : (large ? "\(noun) left" : "\(left) \(left == 1 && noun == "spots" ? "spot" : (left == 1 && noun == "bikes" ? "bike" : noun)) left"))
                             .font(large ? .subheadline : .footnote.weight(.medium))
                     }
-                    .foregroundStyle(low ? Color.statusWarning : Color.textMuted)
+                    .foregroundStyle(low ? Color.statusWarning : Color.secondary)
                 }
             }
         }
@@ -111,9 +111,9 @@ struct AmenityChip: View {
             Text(label).lineLimit(1)
         }
         .font(.footnote.weight(.medium))
-        .foregroundStyle(warn ? Color.statusWarning : (isSelected ? Color.brandOnAccent : Color.textPrimary))
+        .foregroundStyle(warn ? Color.statusWarning : (isSelected ? Color.white : Color.primary))
         .padding(.horizontal, 12).padding(.vertical, 7)
-        .background(warn ? Color.statusWarningSubtle : (isSelected ? Color.brandSecondary : Color.surfaceMuted), in: Capsule())
+        .background(warn ? Color.statusWarningSubtle : (isSelected ? Color.accentColor : Color(.tertiarySystemFill)), in: Capsule())
     }
 }
 
@@ -130,10 +130,9 @@ struct FilterChip: View {
                 Image(systemName: "chevron.down").imageScale(.small).font(.caption2.weight(.bold)).opacity(0.7)
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(active ? Color.brandOnAccent : Color.textPrimary)
+            .foregroundStyle(active ? Color.white : Color.primary)
             .padding(.horizontal, 14).frame(minHeight: 44)
-            .background(active ? Color.brandSecondary : Color.surface, in: Capsule())
-            .overlay(Capsule().strokeBorder(active ? Color.clear : Color.borderStrong, lineWidth: 1))
+            .background(active ? Color.accentColor : Color(.secondarySystemGroupedBackground), in: Capsule())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(active ? .isSelected : [])
@@ -149,7 +148,7 @@ struct InstructorChip: View {
             CoachImage(name: coach.fullName, category: coach.category, size: large ? 56 : 28)
             VStack(alignment: .leading, spacing: 0) {
                 Text(large ? "with \(coach.fullName)" : coach.shortName).font(large ? .headline : .subheadline)
-                if showCredential { Text(coach.credential).font(.subheadline).foregroundStyle(Color.textMuted) }
+                if showCredential { Text(coach.credential).font(.subheadline).foregroundStyle(Color.secondary) }
             }
         }
         .accessibilityElement(children: .combine)
@@ -162,10 +161,10 @@ struct OpenStatus: View {
     var body: some View {
         let open = club.isOpen(at: now)
         HStack(spacing: 5) {
-            Image(systemName: open ? "circle.fill" : "moon.fill").imageScale(.small).foregroundStyle(open ? Color.statusSuccess : Color.textMuted)
+            Image(systemName: open ? "circle.fill" : "moon.fill").imageScale(.small).foregroundStyle(open ? Color.statusSuccess : Color.secondary)
                 .font(.caption2).accessibilityHidden(true)
             Text(open ? "Open until \(club.openUntilText(on: now))" : "Closed · opens \(club.opensText(now))")
-                .font(.footnote.weight(.medium)).foregroundStyle(open ? Color.statusSuccess : Color.textMuted)
+                .font(.footnote.weight(.medium)).foregroundStyle(open ? Color.statusSuccess : Color.secondary)
         }
     }
 }
@@ -173,12 +172,12 @@ struct OpenStatus: View {
 struct LateCancelNotice: View {
     var freeUntil: Date
     var body: some View {
-        Label("Free cancel ended \(freeUntil.cpTime) Cancelling now counts as a late cancel.", systemImage: "exclamationmark.triangle.fill")
+        Label("Free cancel ended \(freeUntil.cpTimeShort) Cancelling now counts as a late cancel.", systemImage: "exclamationmark.triangle.fill")
             .font(.footnote).foregroundStyle(Color.statusWarning)
     }
 }
 
 struct FactLabel: View {
     var label: String
-    var body: some View { Text(label.uppercased()).eyebrowStyle() }
+    var body: some View { Text(label).font(.caption.weight(.semibold)).foregroundStyle(Color.secondary) }
 }

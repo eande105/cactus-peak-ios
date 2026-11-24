@@ -95,7 +95,8 @@ enum HouseholdMapper {
         let member = MemberProfile(
             first: me.firstName, last: me.lastName, plan: plan, homeClubID: me.homeClub, memberNumber: me.memberNumber,
             billingDay: r.household.billingDay, sinceText: r.household.memberSince.cpFormat("MMMM yyyy"),
-            age: age(me.dob, at: now), isTeen: me.role == "teen", ownerFirst: primary?.firstName ?? "", email: me.email)
+            age: age(me.dob, at: now), isTeen: me.role == "teen", ownerFirst: primary?.firstName ?? "", email: me.email,
+            stats: MemberStats(streakWeeks: me.streakWeeks, lifetimeVisits: me.lifetimeVisits, longestStreak: me.longestStreak))
 
         let people = r.members.sorted { (role($0.role) == .admin ? 0 : 1, $0.dob) < (role($1.role) == .admin ? 0 : 1, $1.dob) }.map { m in
             Person(id: m.id, first: m.firstName, last: m.lastName, role: role(m.role), age: age(m.dob, at: now),

@@ -1,12 +1,15 @@
 import SwiftUI
 
-/// Today is a List: Next up first, then coming up, club now, this week, for you. A held waitlist spot comes before all of it.
+/// Today is a List: For you first, then Next up, Coming up, and a pair of summary tiles for the club and the week. A held waitlist spot comes before all of it.
 struct TodayView: View {
+    /// Toolbar buttons zoom the sheets they open out of themselves (see `zoomSource`).
+    @Environment(\.zoomNamespace) private var zoomNamespace
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
     @Environment(\.openURL) private var openURL
-    @Environment(\.dynamicTypeSize) private var dts
     @State private var loading = true
+    /// The class just rated. Its card stays for the thanks and the note until the member closes it.
+    @State private var thankedID: BookingID?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 20)) { _ in
@@ -15,57 +18,52 @@ struct TodayView: View {
             List {
                 if model.offline { Section { OfflineBanner(text: "You're offline. \(model.savedDataText)") }.listRowBackground(Color.clear) }
                 statusSection
-                if let hold = model.activeHold { Section { HoldCard(booking: hold) }.listRowBackground(Color.clear) }
+                // A held spot expires in 30 minutes, so it stays above everything else.
+                if let hold = model.activeHold { HoldCard(booking: hold) }
 
-                Section {
-                    if model.isFrozen, let f = model.freeze {
-                        FrozenRow(end: f.end)
-                    } else {
-                        NextUpCard(booking: model.nextBooking, now: now)
-                    }
-                }
-                .listRowBackground(Color.clear).listRowSeparator(.hidden).listRowInsets(.init(top: 4, leading: 0, bottom: 10, trailing: 0))
-                UpcomingSection(now: now)
-                Section {
-                    ClubNowRow(club: club, reading: model.busyness(club), values: model.popular(club), now: now)
-                } header: { Text("Crowd level") }
-                Section {
-                    WeekRow()
-                } header: { Text("This week") }
+                // Recommended first, then what is already booked, then the club and the week.
                 ForYouSection()
-                Section {
-                    if let b = feedbackCandidate(now) { FeedbackCard(booking: b) }
-                } footer: {
-                    Label("Pool's 82° and the shade sails are up.", systemImage: "sun.max").font(.footnote).foregroundStyle(Color.textMuted)
+                if model.isFrozen, let f = model.freeze {
+                    FrozenRow(end: f.end)
+                } else {
+                    NextUpCard(booking: model.nextBooking, now: now)
+                }
+                UpcomingSection(now: now)
+                TodaySummarySection(club: club, reading: model.busyness(club), now: now, pool: model.poolConditions(club))
+                if let b = feedbackCandidate(now) {
+                    FeedbackCard(booking: b) { thankedID = b.id } onClose: { withAnimation { thankedID = nil } }
                 }
             }
             .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
+            .listSectionSpacing(.compact)
             .redacted(reason: loading ? .placeholder : [])
             .refreshable { try? await Task.sleep(for: .milliseconds(500)) }
         }
-        .background(Color.appBackground)
         .task { try? await Task.sleep(for: .milliseconds(300)); loading = false }
-        .navigationTitle(dts.isAccessibilitySize ? "Today" : "Morning, \(model.member.first).")
-        .navigationSubtitle(model.now.cpFormat("EEEE, MMM d"))
+        .navigationTitle("Today")
+        .navigationBarTitleDisplayMode(.inline)
+        // The club button stands in for the title. The title stays set for VoiceOver and the back button.
+        .toolbar(removing: .title)
         .toolbar { toolbar }
         .sensoryFeedback(.levelChange, trigger: model.busyness(model.club(model.currentClubID)).level)
     }
 
     // MARK: Toolbar
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            ClubPill(showCrowd: false)
-        }
+        ToolbarItem(placement: .topBarLeading) { ClubMenuButton() }
         ToolbarItem(placement: .topBarTrailing) {
-            Button { router.push(.notifications) } label: { Image(systemName: model.unreadCount > 0 ? "bell.badge" : "bell") }
+            Button { router.present(.page(.notifications), zoomFrom: "today.inbox") } label: { Image(systemName: model.unreadCount > 0 ? "bell.badge" : "bell") }
+                .barItem()
                 .accessibilityLabel("Inbox").accessibilityValue(model.unreadCount > 0 ? "\(model.unreadCount) unread" : "")
         }
+        .zoomSource("today.inbox", in: zoomNamespace)
         ToolbarSpacer(.fixed, placement: .topBarTrailing)
-        ToolbarItem(placement: .topBarPinnedTrailing) {
-            Button { router.present(.pass) } label: { Image(systemName: model.checkedInToday ? "checkmark.circle" : "qrcode") }.accessibilityLabel("Show pass").accessibilityValue(model.checkedInToday ? "Checked in" : "")
+        ToolbarItem(placement: .topBarTrailing) {
+            Button { router.present(.pass, zoomFrom: "today.pass") } label: { Image(systemName: model.checkedInToday ? "checkmark" : "qrcode") }
+                .barItem()
+                .accessibilityLabel("Show pass").accessibilityValue(model.checkedInToday ? "Checked in" : "")
         }
-        .visibilityPriority(.high)
+        .zoomSource("today.pass", in: zoomNamespace)
     }
 
     // MARK: Status
@@ -90,7 +88,7 @@ struct TodayView: View {
     }
 
     private func feedbackCandidate(_ now: Date) -> Booking? {
-        model.bookings.first { $0.status == .attended && $0.feedback == nil && $0.kind == .classSession && now.timeIntervalSince($0.end) < 24 * 3600 && now > $0.end }
+        model.bookings.first { $0.status == .attended && ($0.feedback == nil || $0.id == thankedID) && $0.kind == .classSession && now.timeIntervalSince($0.end) < 24 * 3600 && now > $0.end }
     }
 }
 
@@ -100,10 +98,12 @@ struct FrozenRow: View {
     @Environment(AppRouter.self) private var router
     var end: Date
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            StatusPill(text: "Frozen until \(end.cpDayMonth)", symbol: "pause.fill", tone: .neutral)
-            Text("Your bookings in the freeze were cancelled with no strikes. You can't check in until billing restarts on \(end.addingDays(1).cpDayMonth).").font(.subheadline)
-            Button("View freeze") { router.selection = .you; router.paths[.you] = [.membership, .freeze] }.linkAction()
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                StatusPill(text: "Frozen until \(end.cpDayMonth)", symbol: "pause.fill", tone: .neutral)
+                Text("Your bookings in the freeze were cancelled with no strikes. You can't check in until billing restarts on \(end.addingDays(1).cpDayMonth).").font(.subheadline)
+                Button("View freeze") { router.selection = .you; router.paths[.you] = [.membership, .freeze] }.linkAction()
+            }
         }
     }
 }
@@ -115,17 +115,17 @@ struct HoldCard: View {
     @Environment(AppRouter.self) private var router
     var booking: Booking
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Label("A spot opened in \(booking.title)", systemImage: "bell.badge.fill").font(.headline)
-            Text("\(booking.start.cpWeekdayShort) \(booking.start.cpTime) · \(model.club(booking.clubID).fullName). Confirm within 30 minutes or the spot goes to the next person.").font(.subheadline)
-            BookingStateButton(state: .hold(booking.holdExpires ?? model.now), size: .large, action: {
-                if model.confirmHold(booking.id) { model.announceBooked(model.booking(booking.id)) }
-            }, onRelease: { model.releaseHold(booking.id) })
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("A spot opened in \(booking.title)", systemImage: "bell.badge.fill").font(.headline)
+                Text("\(booking.start.cpWeekdayShort) \(booking.start.cpTimeShort) · \(model.club(booking.clubID).fullName). Confirm within 30 minutes or the spot goes to the next person.").font(.subheadline)
+                BookingStateButton(state: .hold(booking.holdExpires ?? model.now), size: .large, action: {
+                    if model.confirmHold(booking.id) { model.announceBooked(model.booking(booking.id)) }
+                }, onRelease: { model.releaseHold(booking.id) })
+            }
+            .sensoryFeedback(.warning, trigger: booking.id)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.statusWarningSubtle, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .sensoryFeedback(.warning, trigger: booking.id)
+        .listRowBackground(Color.statusWarningSubtle)
     }
 }
 
@@ -143,73 +143,86 @@ struct NextUpCard: View {
         if let b = booking { booked(b) } else { empty }
     }
 
+    /// A Books "Continue" style card: the booking's tile, its name, who and where, and when, on a flat tint of its
+    /// category. A "…" menu holds the other actions. The card holds no pass button: the pass lives in the toolbar
+    /// and in the tab bar accessory, and the booking's own page leads with it on the day.
     private func booked(_ b: Booking) -> some View {
         let session = b.sessionID.flatMap { model.session($0) }
         let club = model.club(b.clubID)
         let secs = max(0, b.start.timeIntervalSince(now))
         let inProgress = now >= b.start
-        let (clock, ampm) = b.start.cpClock
-        return VStack(alignment: .leading, spacing: 12) {
-            Button { if let id = b.sessionID { router.push(.classSession(id)) } else { router.push(.bookingDetail(b.id)) } } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    let eyebrowLayout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 2)) : AnyLayout(HStackLayout(spacing: 4))
-                    eyebrowLayout {
-                        Label(inProgress ? "IN PROGRESS · ENDS \(b.end.cpTime.uppercased())" : "NEXT UP ·", systemImage: b.category.symbol).labelStyle(.titleAndIcon)
-                        if !inProgress {
-                            Text(secs < 5400 ? "STARTS IN" : b.start.cpWeekdayShort.uppercased())
-                            if secs < 5400 {
-                                Text(timerInterval: Date.now...Date.now.addingTimeInterval(max(secs, 1)), countsDown: true, showsHours: false).monospacedDigit()
+        let route: AppRoute = b.sessionID.map { .classSession($0) } ?? .bookingDetail(b.id)
+        // Who or what, then where. Each part shows once: a kids club booking's detail is the children's names. The club
+        // shows only when it is not the club in the toolbar.
+        let who: String = b.coachID.map { model.coach($0).shortName } ?? ""
+        let what: String = session?.room ?? b.detail
+        let whereText = b.clubID == model.currentClubID ? "" : club.shortName
+        let secondary = [who, what, whereText].filter { !$0.isEmpty }.joined(separator: " · ")
+        return Section {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
+                    Button { router.push(route, on: .today) } label: {
+                        let layout = dts.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .center, spacing: 14))
+                        layout {
+                            BookingTile(booking: b, coach: b.coachID.map { model.coach($0) }, size: 64)
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(b.title).brandFont(.section).fixedSize(horizontal: false, vertical: true)
+                                if !secondary.isEmpty { Text(secondary).font(.subheadline).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+                                HStack(spacing: 4) {
+                                    Text(b.start.cpTimeShort).monospacedDigit()
+                                    Text("·")
+                                    trailing(b, secs: secs, inProgress: inProgress)
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(b.category.textColor)
+                                if model.checkedInToday {
+                                    Label("Checked in", systemImage: "checkmark.circle.fill")
+                                        .font(.footnote.weight(.semibold)).foregroundStyle(Color.statusSuccess)
+                                }
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .contentShape(.rect)
                     }
-                    .eyebrowStyle(Color.linkText)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(clock).font(.archivoExtraBold(56, relativeTo: .largeTitle)).tracking(-1).monospacedDigit()
-                        Text(ampm).font(.title3.weight(.semibold))
-                    }
-                    Text(b.title).font(.title2.bold()).fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 8) {
-                        if let c = b.coachID.map({ model.coach($0) }) { Text("\(c.shortName) · \(session?.room ?? b.detail) · \(club.shortName)") }
-                        else { Text("\(b.detail.isEmpty ? "" : "\(b.detail) · ")\(club.shortName)") }
-                        if let s = session { RibMeter(value: s.intensity, tone: .category(s.category), size: .sm, peak: false) }
-                    }
-                    .font(.subheadline).foregroundStyle(Color.textMuted)
+                    .buttonStyle(.plain)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Next up. \(b.title), \(b.start.cpTimeShort), \(inProgress ? "in progress" : "starts in \(max(Int(secs / 60), 1)) minutes"), \(who), \(what), \(club.fullName).\(session.map { " Intensity \($0.intensity) of 5." } ?? "")")
+                    .accessibilityHint("Opens the booking")
+                    moreMenu(b, club)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .foregroundStyle(Color.textPrimary)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-            actions(b, club)
-        }
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Next up. \(b.title), \(b.start.cpTime), \(inProgress ? "in progress" : "starts in \(max(Int(secs / 60), 1)) minutes"), \(b.coachID.map { model.coach($0).shortName } ?? ""), \(session?.room ?? b.detail), \(club.fullName).\(session.map { " Intensity \($0.intensity) of 5." } ?? "")")
+            .padding(.vertical, 4)
+        } header: { DetailSectionHeader(title: "Next up") }
+        .listRowBackground(NextUpTint(category: b.category))
     }
 
-    private func actions(_ b: Booking, _ club: Club) -> some View {
-        let pass = Group {
-            if model.checkedInToday {
-                Button {} label: { Label("Checked in", systemImage: "checkmark").lineLimit(1).fixedSize() }.buttonStyle(.glass).controlSize(.regular).disabled(true)
-            } else {
-                Button { router.present(.pass) } label: { HStack(spacing: 6) { Image(systemName: "qrcode"); Text("Show pass") }.foregroundStyle(Color.brandOnAccent).lineLimit(1).fixedSize() }
-                    .buttonStyle(.glassProminent).tint(Color.brandAccent).controlSize(.regular)
-            }
+    /// The countdown, "In progress", "Today" or the weekday. It sits after the start time.
+    @ViewBuilder private func trailing(_ b: Booking, secs: Double, inProgress: Bool) -> some View {
+        if inProgress {
+            Text("In progress")
+        } else if secs < 5400 {
+            Text(timerInterval: Date.now...Date.now.addingTimeInterval(max(secs, 1)), countsDown: true, showsHours: false)
+                .monospacedDigit()
+        } else {
+            Text(AZ.cal.isDate(b.start, inSameDayAs: now) ? "Today" : b.start.cpWeekdayShort)
         }
-        let dir = Button { openMaps(club) } label: { Text("Directions").lineLimit(1).fixedSize() }
-            .buttonStyle(.glass).controlSize(.regular)
-        let more = Menu {
+    }
+
+    /// Directions, calendar and cancel, behind one "…" button in the card's corner.
+    private func moreMenu(_ b: Booking, _ club: Club) -> some View {
+        Menu {
+            Button { openMaps(club) } label: { Label("Directions", systemImage: "arrow.triangle.turn.up.right.diamond") }
             if b.kind == .classSession { Button { router.present(.calendar(b.id)) } label: { Label("Add to calendar", systemImage: "calendar.badge.plus") } }
             Button(role: .destructive) { router.requestCancel(b.id) } label: { Label("Cancel booking", systemImage: "xmark") }
-        } label: { Label("More", systemImage: "ellipsis").labelStyle(.iconOnly) }
-            .buttonStyle(.glass).controlSize(.regular)
-        return GlassEffectContainer(spacing: 10) {
-            // Three across when they fit, stacked when they do not (large text, small phones).
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 10) { pass; dir; more }
-                VStack(alignment: .leading, spacing: 10) { pass; dir; more }
-            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.body.weight(.semibold))
+                .frame(width: 36, height: 36)
+                .background(Color(.tertiarySystemFill), in: Circle())
+                .contentShape(Circle())
         }
+        .tint(.primary)
+        .accessibilityLabel("More")
     }
 
     private func openMaps(_ c: Club) {
@@ -217,21 +230,22 @@ struct NextUpCard: View {
     }
 
     @ViewBuilder private var empty: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Nothing booked today.").font(.archivoExtraBold(24, relativeTo: .title2))
-            if let u = model.usualSession {
-                let d = model.rowData(u)
-                let day = AZ.cal.isDate(u.start, inSameDayAs: now) ? "Today" : (AZ.cal.isDate(u.start, inSameDayAs: now.addingDays(1)) ? "Tomorrow" : u.start.cpWeekdayShort)
-                Text("Your usual: \(u.name), \(day) \(u.start.cpTime) · \(d.left) \(u.spotNoun) left").font(.subheadline).foregroundStyle(Color.textMuted)
-                HStack {
-                    BookingStateButton(state: d.state, action: { ClassActions.primary(u, model: model, router: router) })
-                    Button("Browse classes") { router.selection = .book }.linkAction()
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Nothing booked today.").brandFont(.section)
+                if let u = model.usualSession {
+                    let d = model.rowData(u)
+                    let day = AZ.cal.isDate(u.start, inSameDayAs: now) ? "Today" : (AZ.cal.isDate(u.start, inSameDayAs: now.addingDays(1)) ? "Tomorrow" : u.start.cpWeekdayShort)
+                    Text("Your usual: \(u.name), \(day) \(u.start.cpTimeShort) · \(d.left) \(u.spotNoun) left").font(.subheadline).foregroundStyle(.secondary)
+                    HStack {
+                        BookingStateButton(state: d.state, action: { ClassActions.primary(u, model: model, router: router) })
+                        Button("Browse classes") { router.selection = .book }.linkAction()
+                    }
+                } else {
+                    Button("Browse classes") { router.selection = .book }.primaryAction()
                 }
-            } else {
-                Button("Browse classes") { router.selection = .book }.primaryAction()
             }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        } header: { DetailSectionHeader(title: "Next up") }
     }
 }
 
@@ -244,89 +258,40 @@ extension AppModel {
     }
 }
 
-// MARK: - Club now (one row; the full chart lives on Club detail)
-
-struct ClubNowRow: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppRouter.self) private var router
-    @Environment(\.dynamicTypeSize) private var dts
-    var club: Club
-    var reading: BusynessReading
-    var values: [Double]
-    var now: Date
-
-    var body: some View {
-        Button { router.push(.club(club.id)) } label: {
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    BusynessMeter(reading: reading, variant: .hero, now: now)
-                    Text(club.isOpen(at: now) ? "\(club.fullName) · open until \(club.openUntilText(on: now))" : "\(club.fullName) · closed, opens \(club.opensText(now))")
-                        .font(.subheadline).foregroundStyle(Color.textMuted)
-                }
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted).accessibilityHidden(true)
-            }
-            .frame(minHeight: 56).contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint("Opens club details")
-    }
-}
-
-// MARK: - This week
-
-struct WeekRow: View {
-    @Environment(AppModel.self) private var model
-    @Environment(AppRouter.self) private var router
-    var body: some View {
-        let streak = model.streak
-        let ws = model.weekStart(model.now)
-        let dots: [Bool] = (0..<7).map { i in
-            let d = ws.addingDays(i)
-            return model.visits.contains { $0 >= d && $0 < d.addingDays(1) && $0 <= model.now }
-        }
-        let todayIdx = AZ.cal.dateComponents([.day], from: ws, to: model.now.startOfAZDay).day ?? 0
-        Button { router.push(.progress, on: .today) } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                if model.visits.isEmpty { Text("Your first visit starts the streak.").font(.headline) }
-                else { VisitStreakStrip(weeks: streak.weeks, visited: dots, todayIndex: todayIdx, thisWeek: streak.thisWeek) }
-                ProgressRibs(value: streak.thisWeek, goal: model.weeklyGoal, hero: false)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Coming up
 
 struct UpcomingSection: View {
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
     var now: Date
+    private func dayText(_ d: Date) -> String {
+        if AZ.cal.isDate(d, inSameDayAs: now) { return "Today" }
+        if AZ.cal.isDate(d, inSameDayAs: now.addingDays(1)) { return "Tomorrow" }
+        return d.cpWeekdayShort
+    }
     var body: some View {
         let list = Array(model.upcomingBookings.filter { $0.id != model.nextBooking?.id }.prefix(3))
         if !list.isEmpty {
             Section {
                 ForEach(list) { b in
-                    Button {
-                        if let s = b.sessionID { router.push(.classSession(s), on: .today) } else { router.push(.bookingDetail(b.id), on: .today) }
-                    } label: {
-                        HStack {
-                            BookingRow(booking: b, clubShort: model.club(b.clubID).shortName,
-                                       statusText: b.status == .waitlisted ? "On waitlist #\(b.waitlistPosition)" : (b.kind == .kids ? b.detail : "Booked"))
-                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Color.textMuted).accessibilityHidden(true)
-                        }.contentShape(Rectangle())
+                    NavigationLink(value: b.sessionID.map { AppRoute.classSession($0) } ?? AppRoute.bookingDetail(b.id)) {
+                        BookingListRow(booking: b, coach: b.coachID.map { model.coach($0) },
+                                       line: [dayText(b.start) + " · " + b.start.cpTimeShort,
+                                              b.clubID == model.currentClubID ? "" : model.club(b.clubID).shortName]
+                                           .filter { !$0.isEmpty }.joined(separator: " · ")) {
+                            RowPill(text: b.status == .waitlisted ? "Waitlist #\(b.waitlistPosition)" : "View")
+                        }
+                        .accessibilityElement(children: .combine)
                     }
-                    .buttonStyle(.plain)
+                    .navigationLinkIndicatorVisibility(.hidden)
                     .swipeActions(edge: .trailing) {
                         if b.status == .waitlisted { Button("Leave") { model.leaveWaitlist(b.id) }.tint(.red) }
                         else { Button("Cancel") { router.requestCancel(b.id) }.tint(.red) }
                     }
                 }
             } header: {
-                HStack { Text("Coming up"); Spacer(); Button("See all") { router.push(.myBookings, on: .today) }.linkAction().font(.subheadline).textCase(nil) }
+                let total = model.upcomingBookings.count
+                DetailSectionHeader(title: "Coming up", detail: "\(total) booked") { router.push(.myBookings, on: .today) }
             }
         }
     }
@@ -337,23 +302,23 @@ struct UpcomingSection: View {
 struct ForYouSection: View {
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
+
     var body: some View {
         let picks = suggestions()
         if !picks.isEmpty {
-            Section {
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 12) {
-                        ForEach(picks) { d in
-                            Button { router.push(.classSession(d.session.id), on: .today) } label: { ClassFeatureCard(data: d) }.buttonStyle(.plain)
-                        }
-                    }
-                    .scrollTargetLayout().padding(.horizontal, 16)
+            CardStripSection(items: picks) {
+                DetailSectionHeader(title: "For you", detail: picks.count == 1 ? "1 class" : "\(picks.count) classes")
+            } card: { d in
+                Button { router.push(.classSession(d.session.id), on: .today) } label: {
+                    ClassFeatureCard(data: d)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .clipShape(.rect(cornerRadius: DetailMetrics.cornerRadius, style: .continuous))
                 }
-                .scrollTargetBehavior(.viewAligned).scrollIndicators(.hidden)
-                .listRowInsets(.init()).listRowBackground(Color.clear)
-            } header: { Text("For you") }
+                .buttonStyle(.plain)
+            }
         }
     }
+
     private func suggestions() -> [ClassRowData] {
         let tomorrow = model.now.startOfAZDay.addingDays(1)
         let interests = model.prefs.interests
@@ -368,21 +333,209 @@ struct ForYouSection: View {
 
 // MARK: - Feedback
 
+/// A quick check after a class, like rating a place in Apple Maps: the class, then one "Overall" row with a thumbs
+/// up and a thumbs down. One tap answers. The card then thanks the member and offers a note, until they close it.
 struct FeedbackCard: View {
     @Environment(AppModel.self) private var model
     @Environment(AppRouter.self) private var router
     var booking: Booking
+    /// Called after an answer, so Today keeps the card on screen for its thanks.
+    var onAnswer: () -> Void = {}
+    var onClose: () -> Void = {}
+
+    private var answer: Answer? { booking.feedback.flatMap(Answer.init(rawValue:)) }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("How was \(booking.title)?").font(.headline)
-            HStack(spacing: 8) {
-                ForEach(["Great", "Okay", "Not for me"], id: \.self) { a in Button(a) { model.giveFeedback(booking.id, a) }.buttonStyle(.bordered).buttonBorderShape(.capsule) }
+        Section {
+            HStack(spacing: 12) {
+                BookingTile(booking: booking, coach: booking.coachID.map { model.coach($0) }, size: 44)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(answer == nil ? "How was \(booking.title)?" : "Thanks for telling us").font(.headline)
+                    Text(subtitle).font(.subheadline).foregroundStyle(Color.secondary)
+                }
+                Spacer(minLength: 0)
+                if answer != nil {
+                    Button(action: onClose) { Image(systemName: "xmark") }
+                        .buttonStyle(.glass).buttonBorderShape(.circle).tint(.primary)
+                        .accessibilityLabel("Close")
+                }
             }
             HStack {
-                Text("Only the club sees this.").font(.footnote).foregroundStyle(Color.textMuted)
-                Spacer()
-                Button("Add a note") { router.present(.feedback(booking.id)) }.linkAction().font(.subheadline)
+                Text("Overall")
+                Spacer(minLength: 8)
+                ForEach(Answer.allCases, id: \.self) { a in thumb(a) }
             }
+            if answer != nil {
+                Button { router.present(.feedback(booking.id)) } label: { Label("Add a note", systemImage: "square.and.pencil") }
+            }
+        } header: {
+            // A title, like Health's "Highlights" or "Blood Pressure Log" over a single card: Today titles every group,
+            // so a lone line would be the one odd separator. The title names the kind of card; the card names the class.
+            DetailSectionHeader(title: "Feedback")
+        } footer: {
+            Text("Only the club sees this.")
+        }
+        .sensoryFeedback(.selection, trigger: booking.feedback)
+    }
+
+    /// "Today, 6 am · Marisol V." before an answer; what the answer does after it.
+    private var subtitle: String {
+        if let answer { return answer == .up ? "Your coach will see it." : "We'll pass it on, and suggest other classes." }
+        let coach = booking.coachID.map { " · \(model.coach($0).shortName)" } ?? ""
+        return "\(booking.start.cpTimeShort)\(coach)"
+    }
+
+    private func thumb(_ a: Answer) -> some View {
+        let on = answer == a
+        return Button {
+            withAnimation(.snappy) { model.giveFeedback(booking.id, a.rawValue) }
+            onAnswer()
+        } label: {
+            Image(systemName: on ? a.symbol + ".fill" : a.symbol)
+                .symbolFont(.title3)
+                .foregroundStyle(on ? Color.brandOnAccent : Color.secondary)
+                .frame(width: 44, height: 44)
+                .background(on ? (a == .up ? Color.brandAccent : Color.secondary) : Color(.tertiarySystemFill), in: Circle())
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        // One answer per class. Not .disabled: that would fade the chosen thumb.
+        .allowsHitTesting(answer == nil)
+        .accessibilityLabel(a == .up ? "Liked it" : "Not for me")
+        .accessibilityAddTraits(on ? .isSelected : [])
+    }
+
+    private enum Answer: String, CaseIterable {
+        case up = "Great", down = "Not for me"
+        var symbol: String { self == .up ? "hand.thumbsup" : "hand.thumbsdown" }
+    }
+}
+
+// MARK: - Summary tiles
+
+/// The club's crowd and the member's week as two tiles side by side. Each opens its full page.
+struct TodaySummarySection: View {
+    @Environment(AppModel.self) private var model
+    @Environment(AppRouter.self) private var router
+    var club: Club
+    var reading: BusynessReading
+    var now: Date
+    /// Nil when the club has no pool. The pool cards then leave the grid.
+    var pool: PoolConditions?
+
+    var body: some View {
+        Section {
+            SummaryTileGrid {
+                SummaryTilePair {
+                    CrowdCard(club: club, reading: reading, now: now)
+                    VisitsCard()
+                }
+                if let pool { PoolTiles(club: club, pool: pool) }
+            }
+        } header: {
+            DetailSectionHeader(title: "Summary")
+        }
+    }
+}
+
+/// The pool's row of the summary grid: the water temperature, then the shade sails where the club has them, or the
+/// lanes open now where it does not.
+private struct PoolTiles: View {
+    @Environment(AppRouter.self) private var router
+    var club: Club
+    var pool: PoolConditions
+
+    var body: some View {
+        SummaryTilePair {
+            StatCard(title: "Water", symbol: "water.waves", tint: ClassCategory.aqua.textColor,
+                     time: pool.readAt.cpTimeShort, value: "\(pool.waterF)", unit: "°F", detail: "Lap pool", action: openClub)
+                .accessibilityLabel("Water, \(pool.waterF) degrees Fahrenheit at \(pool.readAt.cpTimeShort)")
+            if let shade = pool.shade {
+                StatCard(title: "Shade sails", symbol: shade.up ? "sun.max.fill" : "sun.horizon.fill", tint: Color.dawnCopper,
+                         time: "Now", value: shade.up ? "Up" : "Down", unit: nil,
+                         detail: "\(shade.up ? "Down" : "Up") at \(shade.next.cpTimeShort)\(AZ.cal.isDate(shade.next, inSameDayAs: pool.readAt) ? "" : " tomorrow")",
+                         action: openClub)
+            } else if let open = pool.lanesOpen {
+                StatCard(title: "Lanes", symbol: "figure.pool.swim", tint: ClassCategory.aqua.textColor,
+                         time: "Now", value: "\(open)", unit: "of \(pool.laneCount)", detail: "Open to book", action: openLanes)
+            } else {
+                StatCard(title: "Lanes", symbol: "figure.pool.swim", tint: ClassCategory.aqua.textColor,
+                         time: nil, value: "Closed", unit: nil,
+                         detail: pool.opens.map { "Opens \($0.cpTimeShort)" }, action: openLanes)
+            }
+        }
+    }
+
+    private func openClub() { router.push(.club(club.id), on: .today) }
+    private func openLanes() { router.segment = .lanes; router.selection = .book }
+}
+
+/// The crowd at the current club now, on the rib meter, and how long the club stays open. The club's name is in
+/// the bar, so the card does not repeat it.
+private struct CrowdCard: View {
+    @Environment(AppRouter.self) private var router
+    var club: Club
+    var reading: BusynessReading
+    var now: Date
+
+    var body: some View {
+        StatCard(title: "Crowd", symbol: "person.2.fill", tint: Color.brandSecondary,
+                 time: reading.stale ? nil : "Now",
+                 value: reading.closed ? "Closed" : (reading.stale ? "Unavailable" : reading.word), unit: nil,
+                 detail: club.isOpen(at: now) ? "Open until \(club.openUntilText(on: now))" : "Opens \(club.opensText(now))") {
+            router.push(.club(club.id), on: .today)
+        } visual: {
+            if !reading.closed { RibMeter(value: reading.level, tone: reading.tone, size: .md, unavailable: reading.stale) }
+        }
+    }
+}
+
+/// Visits this week against the goal, then the week as a row of days, like the week strip in Fitness: a filled dot
+/// for a day with a visit, a ring for today, each over its initial.
+private struct VisitsCard: View {
+    @Environment(AppModel.self) private var model
+    @Environment(AppRouter.self) private var router
+
+    var body: some View {
+        let ws = model.weekStart(model.now)
+        let today = AZ.cal.dateComponents([.day], from: ws, to: model.now.startOfAZDay).day ?? 0
+        let visited: [Bool] = (0..<7).map { i in
+            let d = ws.addingDays(i)
+            return model.visits.contains { $0 >= d && $0 < d.addingDays(1) && $0 <= model.now }
+        }
+        StatCard(title: "This week", symbol: "calendar", tint: Color.linkText, time: nil,
+                 value: "\(model.visitsThisWeek)", unit: "of \(model.weeklyGoal) visits",
+                 detail: model.visits.isEmpty ? "Your first visit starts a streak" : "\(model.streak.weeks)-week streak") {
+            router.push(.progress, on: .today)
+        } visual: {
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { i in
+                    VStack(spacing: 3) {
+                        Circle()
+                            .fill(visited[i] ? Color.brandAccent : Color(.tertiarySystemFill))
+                            .overlay { if i == today && !visited[i] { Circle().strokeBorder(Color.brandAccent, lineWidth: 1.5) } }
+                            .frame(width: 11, height: 11)
+                        Text(ws.addingDays(i).cpFormat("EEEEE")).font(.caption2.weight(i == today ? .bold : .regular))
+                            .foregroundStyle(i == today ? Color.primary : Color.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, 2)
+            .accessibilityHidden(true)
+        }
+        .accessibilityLabel("Visits this week, \(model.visitsThisWeek) of \(model.weeklyGoal). \(visited.filter { $0 }.count) days with a visit.")
+    }
+}
+
+/// The Next up card's fill: the card colour with a flat tint of the booking's category on top.
+private struct NextUpTint: View {
+    var category: ClassCategory
+    @Environment(\.colorScheme) private var scheme
+    var body: some View {
+        ZStack {
+            Color(.secondarySystemGroupedBackground)
+            category.color.opacity(scheme == .dark ? 0.22 : 0.12)
         }
     }
 }

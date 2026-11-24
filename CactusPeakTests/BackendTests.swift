@@ -80,6 +80,8 @@ final class HouseholdMappingTests: XCTestCase {
         XCTAssertEqual(s.member.age, 52)
         XCTAssertEqual(s.member.billingDay, 14)
         XCTAssertEqual(s.member.sinceText, "September 2026")
+        // Progress reads these, so iOS shows the same streak and lifetime numbers as the web.
+        XCTAssertEqual(s.member.stats, MemberStats(streakWeeks: 1, lifetimeVisits: 6, longestStreak: 1))
         XCTAssertEqual(s.people.map(\.role), [.admin, .child, .child])
         XCTAssertEqual(s.people[1].allergies, "Peanuts")
         XCTAssertEqual(s.weeklyGoal, 4)

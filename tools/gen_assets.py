@@ -96,4 +96,16 @@ for key, src in {"LogoHorizontalReversed": "cpa-horizontal-reversed.svg", "LogoH
     shutil.copy(os.path.join(BRAND, "final", src), os.path.join(d, src))
     json.dump({"images": [{"filename": src, "idiom": "universal"}], "info": {"author": "xcode", "version": 1},
                "properties": {"preserves-vector-representation": True}}, open(os.path.join(d, "Contents.json"), "w"), indent=2)
+# Rib Peak mark as a template image, for map markers (`Marker(_:image:coordinate:)`). Same polygons as RibPeakShape.
+_polys = [[(12.53,230),(12.53,222),(40,174.42),(40,230)],[(58.5,230),(58.5,142.38),(86.5,93.88),(86.5,230)],
+          [(105,230),(105,61.84),(128,22),(151,61.84),(151,230)],[(169.5,230),(169.5,93.88),(197.5,142.38),(197.5,230)],
+          [(216,230),(216,174.42),(243.47,222),(243.47,230)]]
+d = os.path.join(app, "RibPeakMark.imageset")
+os.makedirs(d)
+open(os.path.join(d, "rib-peak-mark.svg"), "w").write(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="#000">'
+    + "".join('<polygon points="%s"/>' % " ".join(f"{x},{y}" for x, y in p) for p in _polys) + "</svg>")
+json.dump({"images": [{"filename": "rib-peak-mark.svg", "idiom": "universal"}], "info": {"author": "xcode", "version": 1},
+           "properties": {"preserves-vector-representation": True, "template-rendering-intent": "template"}},
+          open(os.path.join(d, "Contents.json"), "w"), indent=2)
 print("assets ok")

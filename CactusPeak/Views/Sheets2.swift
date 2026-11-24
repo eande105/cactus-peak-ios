@@ -13,33 +13,23 @@ struct FiltersSheet: View {
             Form {
                 Section("Category") {
                     ForEach(ClassCategory.allCases) { c in
-                        Button { toggle(c) } label: {
-                            HStack { Label { Text(c.title).foregroundStyle(Color.textPrimary) } icon: { Image(systemName: c.symbol).foregroundStyle(c.textColor) }
-                                Spacer(); if router.filters.categories.contains(c) { Image(systemName: "checkmark").foregroundStyle(Color.brandAccent) } }
-                            .frame(minHeight: 44).contentShape(Rectangle())
-                        }.buttonStyle(.plain).accessibilityAddTraits(router.filters.categories.contains(c) ? .isSelected : [])
+                        Toggle(isOn: Binding(get: { router.filters.categories.contains(c) }, set: { _ in toggle(c) })) {
+                            Label { Text(c.title) } icon: { Image(systemName: c.symbol).foregroundStyle(c.textColor) }
+                        }
                     }
                 }
                 Section("Time of day") {
                     ForEach(TimeOfDay.allCases) { t in
                         Toggle(isOn: Binding(get: { router.filters.times.contains(t) }, set: { on in if on { router.filters.times.insert(t) } else { router.filters.times.remove(t) } })) {
-                            VStack(alignment: .leading) { Text(t.rawValue); Text(t.detail).font(.footnote).foregroundStyle(Color.textMuted) }
+                            VStack(alignment: .leading) { Text(t.rawValue); Text(t.detail).font(.footnote).foregroundStyle(.secondary) }
                         }
                     }
                 }
                 Section {
-                    HStack(spacing: 8) {
-                        ForEach(1...5, id: \.self) { i in
-                            Button { router.filters.maxIntensity = i } label: {
-                                RoundedRectangle(cornerRadius: 4).fill(i <= router.filters.maxIntensity ? Color.brandAccent : Color.clear)
-                                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.borderStrong, lineWidth: 1.5))
-                                    .frame(width: 28, height: 20 + CGFloat(i) * 6).frame(minHeight: 44, alignment: .bottom)
-                            }.buttonStyle(.plain).accessibilityLabel("Up to \(Intensity.word(i))")
-                        }
-                        Spacer()
-                        Text("Up to \(Intensity.word(router.filters.maxIntensity))").font(.subheadline.weight(.semibold))
+                    Picker("Intensity", selection: $router.filters.maxIntensity) {
+                        ForEach(1...5, id: \.self) { Text("Up to \(Intensity.word($0))").tag($0) }
                     }
-                } header: { Text("Intensity") }
+                }
                 Section("Options") {
                     Toggle("Good for first-timers", isOn: $router.filters.firstTimers)
                     Toggle("Spots open only", isOn: $router.filters.spotsOnly)
@@ -47,10 +37,19 @@ struct FiltersSheet: View {
                 }
             }
             .navigationTitle("Filters").navigationBarTitleDisplayMode(.inline)
+            // The match count moves to the subtitle so the toolbar holds two icons on the trailing edge:
+            // reset, then the one prominent action that applies the filters and closes the sheet.
+            .navigationSubtitle("\(count) \(count == 1 ? "class" : "classes")")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Reset") { router.filters = ScheduleFilters() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Show \(count) \(count == 1 ? "class" : "classes")") { router.dismissSheet() }.fontWeight(.semibold)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Reset", systemImage: "arrow.counterclockwise") { router.filters = ScheduleFilters() }
+                        .barItem()
+                        .disabled(router.filters.activeCount == 0)
+                }
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Show \(count) \(count == 1 ? "class" : "classes")", systemImage: "checkmark") { router.dismissSheet() }
+                        .accentProminent()
                 }
             }
         }
@@ -81,7 +80,7 @@ struct DatePickerSheet: View {
             DatePicker("Day", selection: $router.day, in: model.now.startOfAZDay...last, displayedComponents: .date)
                 .datePickerStyle(.graphical).environment(\.timeZone, AZ.tz).environment(\.calendar, AZ.cal).padding(.horizontal, 8)
                 .navigationTitle("Pick a day").navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+                .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
@@ -96,31 +95,38 @@ struct GuestShareSheet: View {
     @State private var copied = false
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let created {
-                        Image(systemName: "checkmark.circle.fill").font(.largeTitle).foregroundStyle(Color.statusSuccess)
-                        Text("Pass sent").font(.title2.bold())
-                        Text("\(created.guest.isEmpty ? "Your guest" : created.guest) has until \(created.expires.cpDayMonth) to use it.").font(.body)
-                        let link = "https://app.cactuspeak.example/guest/\(created.id)"
-                        Text(link).font(.footnote.monospaced()).padding(12).frame(maxWidth: .infinity, alignment: .leading).background(Color.surfaceMuted, in: RoundedRectangle(cornerRadius: 10))
-                        HStack {
-                            Button(copied ? "Copied" : "Copy link") { UIPasteboard.general.string = link; copied = true }.secondaryAction()
-                            ShareLink(item: "\(created.guest), here is your free visit to Cactus Peak Athletic. Sign the waiver and show this at the desk: \(link)") { Label("Share", systemImage: "square.and.arrow.up") }.primaryAction()
-                        }
-                    } else {
-                        Text("Share a guest pass").font(.title3.bold())
-                        TextField("Guest first name (optional)", text: $name).textFieldStyle(.roundedBorder)
+            Form {
+                if let created {
+                    let link = "https://app.cactuspeak.example/guest/\(created.id)"
+                    Section {
+                        Label("Pass sent", systemImage: "checkmark.circle.fill").brandFont(.section).foregroundStyle(Color.statusSuccess)
+                        Text("\(created.guest.isEmpty ? "Your guest" : created.guest) has until \(created.expires.cpDayMonth) to use it.")
+                    }
+                    Section {
+                        Text(link).codeFont(.footnote, weight: .regular).textSelection(.enabled)
+                        Button { UIPasteboard.general.string = link; copied = true } label: { Label(copied ? "Copied" : "Copy link", systemImage: copied ? "checkmark" : "doc.on.doc") }
+                        ShareLink(item: "\(created.guest), here is your free visit to Cactus Peak Athletic. Sign the waiver and show this at the desk: \(link)") { Label("Share", systemImage: "square.and.arrow.up") }
+                    }
+                } else {
+                    Section {
+                        TextField("Guest first name (optional)", text: $name)
+                    } footer: {
                         Text("Valid 14 days from today (until \(model.now.startOfAZDay.addingDays(14).cpDayMonth)). One visit, one club. Guest must be 18 or older, or 16 to 17 with a guardian waiver.")
-                            .font(.subheadline).foregroundStyle(Color.textMuted)
+                    }
+                    Section {
                         Button("Create guest link") { created = model.guestPasses.first ?? nil; model.shareGuestPass(name: name); created = model.guestPasses.first }
                             .primaryAction(full: true).disabled(model.guestPassesLeft == 0)
-                    }
+                    }.listRowBackground(Color.clear)
                 }
-                .padding(16)
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .navigationTitle("Guest pass").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if created == nil {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() }.barItem() }
+                } else {
+                    ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } }
+                }
+            }
             .sensoryFeedback(.success, trigger: created?.id)
         }
     }
@@ -161,7 +167,7 @@ struct AddFamilySheet: View {
                     TextField(needsEmail ? "Email" : "Email (optional)", text: $email).textContentType(.emailAddress).keyboardType(.emailAddress).textInputAutocapitalization(.never)
                     PhotosPicker(selection: $photo, matching: .images) { Label("Add a photo", systemImage: "photo") }
                     if !adult && age < 1 { Text("Kids club starts at 6 months.").font(.footnote).foregroundStyle(Color.statusWarning) }
-                    if !adult && age >= 13 { Text("\(first.isEmpty ? "They" : first) can use the app and check in. You manage billing.").font(.footnote).foregroundStyle(Color.textMuted) }
+                    if !adult && age >= 13 { Text("\(first.isEmpty ? "They" : first) can use the app and check in. You manage billing.").font(.footnote).foregroundStyle(.secondary) }
                 }
                 Section {
                     Text("+$\(cost)/mo from your next bill on \(model.nextBillDate.cpDayMonth).")
@@ -171,13 +177,13 @@ struct AddFamilySheet: View {
             .navigationTitle("Add member").navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled(dirty)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { if dirty { confirmDiscard = true } else { router.dismissSheet() } } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if dirty { confirmDiscard = true } else { router.dismissSheet() } }.barItem() }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(adult || age >= 13 ? "Send invite" : "Add") {
                         model.addPerson(first: first, last: last, adult: adult, age: adult ? 30 : age)
                         first = ""; last = ""; email = ""
                         router.dismissSheet()
-                    }.disabled(!valid).fontWeight(.semibold)
+                    }.disabled(!valid)
                 }
             }
             .confirmationDialog("Discard this member?", isPresented: $confirmDiscard) {
@@ -219,7 +225,7 @@ struct ComparePlansSheet: View {
                             GridRow {
                                 Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
                                 ForEach(PlanTier.allCases) { p in
-                                    VStack(alignment: .leading) { Text(p.name).font(.subheadline.weight(.bold)); Text("$\(p.price)/mo").font(.caption).monospacedDigit().foregroundStyle(Color.textMuted) }
+                                    VStack(alignment: .leading) { Text(p.name).font(.subheadline.weight(.bold)); Text("$\(p.price)/mo").font(.caption).monospacedDigit().foregroundStyle(.secondary) }
                                 }
                             }
                             Divider().gridCellColumns(4)
@@ -229,8 +235,8 @@ struct ComparePlansSheet: View {
                                     ForEach(0..<3, id: \.self) { i in
                                         let v = r.1[i]
                                         HStack(alignment: .top, spacing: 3) {
-                                            Image(systemName: v == "Not included" ? "minus" : "checkmark").font(.caption2.weight(.bold)).foregroundStyle(v == "Not included" ? Color.textMuted : Color.statusSuccess).padding(.top, 3)
-                                            Text(v).font(.caption).foregroundStyle(v == "Not included" ? Color.textMuted : Color.textPrimary)
+                                            Image(systemName: v == "Not included" ? "minus" : "checkmark").font(.caption2.weight(.bold)).foregroundStyle(v == "Not included" ? Color.secondary : Color.statusSuccess).padding(.top, 3)
+                                            Text(v).font(.caption).foregroundStyle(v == "Not included" ? Color.secondary : Color.primary)
                                         }
                                     }
                                 }
@@ -243,7 +249,7 @@ struct ComparePlansSheet: View {
                 }
             }
             .navigationTitle("Compare plans").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
@@ -255,33 +261,36 @@ struct PlanConfirmSheet: View {
     var body: some View {
         let q = model.planQuote(to: plan)
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(q.isUpgrade ? "Switch to \(plan.name)?" : "Move to \(plan.name)?").font(.title3.bold())
-                    if q.isUpgrade {
-                        VStack(spacing: 8) {
-                            LabeledContent("\(plan.name) from now", value: "$\(plan.price)/mo")
-                            LabeledContent("Difference", value: "+$\(q.delta)/mo")
-                            LabeledContent("Prorated by day for the rest of this cycle", value: "$\(q.proratedToday).00")
-                            Divider()
-                            LabeledContent("Today's total") { Text("$\(q.proratedToday).00").fontWeight(.bold) }
-                        }.font(.subheadline).monospacedDigit()
-                        Text("\(plan.name) starts today. From \(model.nextBillDate.cpDayMonth) your bill is $\(model.nextBillTotal + q.delta).00 a month.").font(.subheadline).foregroundStyle(Color.textMuted)
-                    } else {
-                        Text("Takes effect on your next billing date, \(q.effective.cpDayMonth).").font(.body)
-                        ForEach(q.lost, id: \.self) { Label($0, systemImage: "xmark.circle.fill").font(.subheadline).foregroundStyle(Color.statusDanger) }
+            Form {
+                if q.isUpgrade {
+                    Section {
+                        LabeledContent("\(plan.name) from now", value: "$\(plan.price)/mo")
+                        LabeledContent("Difference", value: "+$\(q.delta)/mo")
+                        LabeledContent("Prorated by day for the rest of this cycle", value: "$\(q.proratedToday).00")
+                        LabeledContent("Today's total") { Text("$\(q.proratedToday).00").fontWeight(.bold) }
+                    } footer: {
+                        Text("\(plan.name) starts today. From \(model.nextBillDate.cpDayMonth) your bill is $\(model.nextBillTotal + q.delta).00 a month.")
                     }
-                    HStack {
-                        Button("Keep \(model.member.plan.name)") { router.dismissSheet() }.secondaryAction(full: true)
-                        Button("Switch to \(plan.name)") {
-                            model.changePlan(to: plan); router.dismissSheet()
-                            model.showToast(q.isUpgrade ? "You're on \(plan.name)." : "\(plan.name) starts \(q.effective.cpDayMonth).")
-                        }.primaryAction(full: true)
+                    .monospacedDigit()
+                } else {
+                    Section { Text("Takes effect on your next billing date, \(q.effective.cpDayMonth).") }
+                    if !q.lost.isEmpty {
+                        Section("You lose") {
+                            ForEach(q.lost, id: \.self) { Label($0, systemImage: "xmark.circle.fill").foregroundStyle(Color.statusDanger) }
+                        }
                     }
-                }.padding(16)
+                }
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Close") { router.dismissSheet() } } }
+            .navigationTitle(q.isUpgrade ? "Switch to \(plan.name)?" : "Move to \(plan.name)?").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() }.barItem() }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(q.isUpgrade ? "Switch" : "Move") {
+                        model.changePlan(to: plan); router.dismissSheet()
+                        model.showToast(q.isUpgrade ? "You're on \(plan.name)." : "\(plan.name) starts \(q.effective.cpDayMonth).")
+                    }
+                }
+            }
         }
     }
 }
@@ -292,14 +301,16 @@ struct FreezeConfirmSheet: View {
     let months: Int
     var body: some View {
         let q = model.freezeQuote(months: months)
-        VStack(spacing: 16) {
-            Image(systemName: "pause.circle.fill").font(.system(size: 52)).foregroundStyle(Color.brandSecondary).padding(.top, 24).accessibilityHidden(true)
-            Text("Freeze from \(q.start.cpDayMonth)?").font(.title2.bold())
-            Text("Billing pauses until \(q.restart.cpDayMonth). You can't check in or book while frozen.").font(.subheadline).foregroundStyle(Color.textMuted).multilineTextAlignment(.center)
-            Button("Freeze membership") { model.setFreeze(months: months); router.dismissSheet() }.primaryAction(full: true)
-            Button("Not now") { router.dismissSheet() }.linkAction()
+        NavigationStack {
+            Form {
+                Section { Text("Billing pauses until \(q.restart.cpDayMonth). You can't check in or book while frozen.") }
+            }
+            .navigationTitle("Freeze from \(q.start.cpDayMonth)?").navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Not now") { router.dismissSheet() }.barItem() }
+                ToolbarItem(placement: .confirmationAction) { Button("Freeze") { model.setFreeze(months: months); router.dismissSheet() } }
+            }
         }
-        .padding(.horizontal, 16)
     }
 }
 
@@ -318,7 +329,7 @@ struct PTPickerSheet: View {
             List {
                 Section {
                     HStack(spacing: 12) { InstructorChip(coach: coach, large: true); Spacer(); Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.brandAccent) }
-                    Text("Available 8 am–8 pm").font(.footnote).foregroundStyle(Color.textMuted)
+                    Text("Available 8 am–8 pm").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section {
                     ScrollView(.horizontal) {
@@ -333,9 +344,9 @@ struct PTPickerSheet: View {
                     Section(g.0) {
                         ForEach(g.1) { s in
                             Button { if s.available { chosen = s.start } } label: {
-                                HStack { Circle().fill(s.available ? Color.statusSuccess : Color.borderStrong).frame(width: 8, height: 8).accessibilityHidden(true)
-                                    Text(s.start.cpTime).monospacedDigit().foregroundStyle(s.available ? Color.textPrimary : Color.textMuted)
-                                    Spacer(); Text(s.available ? "Available" : "Booked").font(.footnote).foregroundStyle(Color.textMuted)
+                                HStack { Circle().fill(s.available ? Color.statusSuccess : Color(.tertiaryLabel)).frame(width: 8, height: 8).accessibilityHidden(true)
+                                    Text(s.start.cpTimeShort).monospacedDigit().foregroundStyle(s.available ? Color.primary : Color.secondary)
+                                    Spacer(); Text(s.available ? "Available" : "Booked").font(.footnote).foregroundStyle(.secondary)
                                     if chosen == s.start { Image(systemName: "checkmark").foregroundStyle(Color.brandAccent) } }
                                 .frame(minHeight: 44).contentShape(Rectangle())
                             }.buttonStyle(.plain).disabled(!s.available).accessibilityAddTraits(chosen == s.start ? .isSelected : [])
@@ -343,8 +354,8 @@ struct PTPickerSheet: View {
                     }
                 }
                 Section {
-                    if let message { Text(message).font(.subheadline).foregroundStyle(Color.textPrimary) }
-                    Text("Sessions are \(model.ptIntroAvailable ? "30 min for your Summit intro" : "45 min"). Free cancel or reschedule up to 24 hours before.").font(.footnote).foregroundStyle(Color.textMuted)
+                    if let message { Text(message).font(.subheadline) }
+                    Text("Sessions are \(model.ptIntroAvailable ? "30 min for your Summit intro" : "45 min"). Free cancel or reschedule up to 24 hours before.").font(.footnote).foregroundStyle(.secondary)
                     Button(model.isTeen ? "Ask \(model.member.ownerFirst) to approve" : (model.ptIntroAvailable ? "Book intro session" : "Book session")) {
                         guard let chosen else { return }
                         switch model.bookPT(coach: coach, start: chosen) {
@@ -356,7 +367,7 @@ struct PTPickerSheet: View {
                 }
             }
             .navigationTitle("Personal training").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarLeading) { Button("Cancel") { router.dismissSheet() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { router.dismissSheet() }.barItem() } }
         }
     }
 }
@@ -376,7 +387,7 @@ struct EditProfileSheet: View {
                 Section("Contact") { TextField("Email", text: $model.member.email).keyboardType(.emailAddress).textInputAutocapitalization(.never) }
             }
             .navigationTitle("Edit profile").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
@@ -405,13 +416,12 @@ struct GoalSheet: View {
         @Bindable var model = model
         NavigationStack {
             Form {
-                Stepper(value: $model.weeklyGoal, in: 1...5) {
-                    VStack(alignment: .leading) { Text("Weekly goal").font(.headline); Text("\(model.weeklyGoal) visits a week").font(.subheadline).foregroundStyle(Color.textMuted) }
-                }
-                Text("A streak week meets your goal. One rest week is forgiven per 10 weeks.").font(.footnote).foregroundStyle(Color.textMuted)
+                Section {
+                    Stepper("\(model.weeklyGoal) visits a week", value: $model.weeklyGoal, in: 1...5)
+                } footer: { Text("A streak week meets your goal. One rest week is forgiven per 10 weeks.") }
             }
             .navigationTitle("Weekly goal").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() }.fontWeight(.semibold) } }
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { router.dismissSheet() } } }
         }
     }
 }
