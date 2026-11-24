@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// DEBUG-only launch arguments so screens can be reached without taps (see BUILD-NOTES.md).
+/// DEBUG-only launch arguments so screens can be reached without taps.
 ///   -screen <name>        open a screen. Names are listed in `DebugLaunch.open`.
 ///   -persona <name>       sign in as a demo account: maya, chris, alicia, jordan, daniel, ron, linda (needs DEMO_PASSWORD)
 ///   -state <name>         paymentFailed, paymentPaused, seeDesk, paused, strikes2, frozen, hold, offline, stale, checkedIn, empty

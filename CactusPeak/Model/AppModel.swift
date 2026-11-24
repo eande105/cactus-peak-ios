@@ -384,7 +384,7 @@ final class AppModel {
 
     /// Past bookings: checked in = attended, otherwise a no-show, which counts as a late cancel.
     /// This is worked out on the device against the demo clock and is not written back: the database keeps
-    /// `booked`, and the server owns attendance (see BUILD-NOTES "Backend").
+    /// `booked`, and the server owns attendance.
     func settleFinishedBookings() {
         for i in bookings.indices where bookings[i].status == .booked && bookings[i].end < now {
             if bookings[i].checkedIn || bookings[i].kind == .kids {
